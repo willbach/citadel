@@ -5,29 +5,11 @@ import Col from '../spacing/Col'
 import Row from '../spacing/Row'
 import useContractStore from '../../store/contractStore';
 import { TestGrain } from '../../types/TestGrain';
-import { Values } from './TestList';
+import { Values } from './ValuesDisplay';
 import Button from '../form/Button';
-
-import './GrainList.scss'
 import { EMPTY_PROJECT } from '../../types/Project';
 
-  // <Draggable key={group} draggableId={group} index={index}>
-  //     {provided => <Box ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-  //       <GroupTile {...{ title, group }} />
-  //     </Box>}
-  //   </Draggable>
-
-
-  // <Droppable droppableId={title} style={{ width: '100%' }}>
-  //             {provided => (
-  //               <Box {...provided.droppableProps} ref={provided.innerRef} backgroundColor="washedGray" mx={-2} mt={2} px={1} py={0} borderRadius={2} minHeight="60px">
-  //                 {groups.map((g, i) => {
-  //                   return (!g || !getTitle(g)) ? null : <GroupCard key={g} title={getTitle(g)} group={g} index={i} />;
-  //                 })}
-  //                 {provided.placeholder}
-  //               </Box>
-  //             )}
-  //           </Droppable>
+import './GrainList.scss'
 
 interface GrainValueDisplayProps extends GrainListProps {
   grain: TestGrain
@@ -96,6 +78,7 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
     <Draggable draggableId={grain.id} index={grainIndex}>
       {(provided: any, snapshot: any) => (
         <>
+        {/* TODO: mark all grains with "outdated: true" with a marker */}
           <Row key={grain.id} className="grain" innerRef={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
             {grainContent}
           </Row>

@@ -1,8 +1,47 @@
 import { TestData } from "../../types/TestData";
+import { TestGrain } from "../../types/TestGrain";
+
+export const BLANK_METADATA = { name: '', symbol: '', decimals: '', supply: '', cap: '', mintable: '', minters: '', deployer: '', salt: '' }
+
+export interface RawMetadata {
+  name: string
+  symbol: string
+  decimals: string
+  supply: string
+  cap: string
+  mintable: string
+  minters: string
+  deployer: string
+  salt: string
+}
+
+export const genFungibleMetadata = ({ name, symbol, decimals, supply, cap, mintable, minters, deployer, salt }: RawMetadata) : TestGrain => {
+  const id = symbol.split('').map((_s, i) => symbol.charCodeAt(i).toString(16)).join('')
+
+  return {
+    id,
+    lord: id,
+    holder: id,
+    'town-id': "0x1",
+    type: "token-metadata",
+    rice: {
+      name,
+      symbol,
+      decimals,
+      supply,
+      cap,
+      mintable: mintable ? 'true' : 'false',
+      minters: minters.split(',').map(m => m.trim()),
+      deployer,
+      salt
+    }
+  }
+}
 
 export const fungibleTokenTestData : TestData = {
   tests: [
     {
+      id: '83754647655676576576',
       input: {
         cart: {
           me:  "0xcafe",
@@ -23,24 +62,24 @@ export const fungibleTokenTestData : TestData = {
     }
   ],
   grains: [
-    {
-      id: "0x7367697a",
-      lord: "0x7367697a",
-      holder: "0x7367697a",
-      'town-id': "0x1",
-      type: "token-metadata",
-      rice: {
-        name: "Zigs: UQ| Tokens",
-        symbol: "ZIG",
-        decimals: "18",
-        supply: "1000000",
-        cap: "",
-        mintable: "false",
-        minters: "[0xbeef]",
-        deployer: "0x0",
-        salt: "1936157050"
-      }
-    },
+    // {
+    //   id: "0x7367697a",
+    //   lord: "0x7367697a",
+    //   holder: "0x7367697a",
+    //   'town-id': "0x1",
+    //   type: "token-metadata",
+    //   rice: {
+    //     name: "Zigs: UQ| Tokens",
+    //     symbol: "ZIG",
+    //     decimals: "18",
+    //     supply: "1000000",
+    //     cap: "",
+    //     mintable: "false",
+    //     minters: "[0xbeef]",
+    //     deployer: "0x0",
+    //     salt: "1936157050"
+    //   }
+    // },
     {
       id: "0x1.beef",
       lord: "0x7367697a",
@@ -95,3 +134,8 @@ export const fungibleTokenTestData : TestData = {
     }
   ]
 }
+
+export const genFungibleTokenTestData = (metadataGrain: TestGrain) => ({
+  ...fungibleTokenTestData,
+  grains: [metadataGrain, ...fungibleTokenTestData.grains]
+})

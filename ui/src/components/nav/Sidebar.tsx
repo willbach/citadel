@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { FaRegPlusSquare, FaRegMinusSquare, FaSave, FaDownload } from 'react-icons/fa';
+import { FaRegPlusSquare, FaRegMinusSquare, FaSave, FaDownload, FaTrash } from 'react-icons/fa';
 import useContractStore from '../../store/contractStore'
 import Button from '../form/Button';
 import Input from '../form/Input';
@@ -11,7 +11,7 @@ import Text from '../text/Text'
 import Link from './Link';
 
 export const Sidebar = () => {
-  const { projects, currentProject, currentApp, openApps, route, setRoute, saveFiles, setCurrentProject, addApp, setCurrentApp, removeApp } = useContractStore()
+  const { projects, currentProject, currentApp, openApps, route, setRoute, saveFiles, setCurrentProject, addApp, setCurrentApp, removeApp, deleteProject } = useContractStore()
   const [showAppModal, setShowAppModal] = useState(false)
   const [appToAdd, setAppToAdd] = useState('')
   const [contractExpanded, setContractExpanded] = useState(true)
@@ -25,8 +25,14 @@ export const Sidebar = () => {
 
   const buttons = [
     [<FaRegPlusSquare />, () => setRoute({ route: 'project', subRoute: 'new' })],
+    // TODO: don't allow saving if any tests contain grains with "outdated: true"
     [<FaSave />, () => saveFiles()],
     [<FaDownload />, () => null],
+    [<FaTrash />, () => {
+      if (window.confirm(`Are you sure you want to delete the ${currentProject} project?`)) {
+        deleteProject()
+      }
+    }]
   ]
 
   const selectProject = useCallback((p: string) => {

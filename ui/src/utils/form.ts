@@ -41,7 +41,8 @@ export const generateFormValues = (type: 'grain' | 'test', data: TestRice | Test
   return allFields
 }
 
-export const testFromForm = (testFormValues: { [key: string]: FormField }, actionType: string) => ({
+export const testFromForm = (testFormValues: { [key: string]: FormField }, actionType: string, id: string) => ({
+  id,
   input: {
     cart: {
       me: testFormValues.me.value,

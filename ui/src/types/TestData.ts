@@ -2,6 +2,7 @@ import { TestAction } from "./TestAction"
 import { TestGrain } from "./TestGrain"
 
 export interface Test {
+  id: string
   input: {
     cart: {
       me: string

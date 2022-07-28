@@ -15,6 +15,7 @@ import { GrainList } from './GrainList';
 import { TestGrain, } from '../../types/TestGrain';
 import { Test } from '../../types/TestData';
 import { EMPTY_PROJECT } from '../../types/Project';
+import { genRanHex } from '../../utils/number';
 
 import './Tests.scss'
 
@@ -80,10 +81,9 @@ export const TestView = () => {
     }
 
     if (isUpdate && edit) {
-      const newTest = testFromForm(testFormValues, actionType)
       const oldTest = edit as any
-      newTest.input.cart.grains = oldTest.input.cart.grains
-      newTest.input.cart.batch = oldTest.input.cart.batch
+      const newTest = testFromForm(testFormValues, actionType, oldTest.id)
+      newTest.input.cart = oldTest.input.cart
       Object.keys(oldTest.input.action).forEach(key => {
         if (testFormValues[key].type.includes('%grain')) {
           newTest.input.action[key] = oldTest.input.action[key]
@@ -91,7 +91,7 @@ export const TestView = () => {
       })
       updateTest(newTest)
     } else {
-      addTest(testFromForm(testFormValues, actionType))
+      addTest(testFromForm(testFormValues, actionType, genRanHex(20)))
     }
     setActionType('')
     setShowTestModal(false)
@@ -131,8 +131,8 @@ export const TestView = () => {
         return setGrains(newGrains)
       }
       // if the source is "grains", then add to the destination action or cart as appropriate
-      const [batch, iden]: string[] = destination.droppableId.split(DROPPABLE_DIVIDER)
-      const test = testData.tests.find((t) => t.input.cart.batch === Number(batch))
+      const [id, iden]: string[] = destination.droppableId.split(DROPPABLE_DIVIDER)
+      const test = testData.tests.find((t) => t.id === id)
       if (test) {
         const newTest = { ...test }
         const field: any = newTest.input.action[iden]

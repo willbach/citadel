@@ -7,7 +7,7 @@ import { initialTypes } from "../code-text/contract/fungible/types";
 import { initialApp } from "../code-text/gall/app";
 import { initialLib } from "../code-text/gall/lib";
 import { initialSur } from "../code-text/gall/sur";
-import { fungibleTokenTestData } from "../code-text/test-data/fungible";
+import { fungibleTokenTestData, genFungibleMetadata, genFungibleTokenTestData, RawMetadata } from "../code-text/test-data/fungible";
 import { DEV_MOLDS, Molds } from "../types/Molds";
 import { EditorTextState, Project } from "../types/Project";
 import { Test } from "../types/TestData";
@@ -27,14 +27,15 @@ export interface ContractStore {
   setRoute: (route: Route) => void
   setLoading: (loading: boolean) => void
   init: () => Promise<void>
-  createProject: (options: { [key: string]: string }) => Promise<void>
+  createProject: (options: { [key: string]: string }, rawMetadata?: RawMetadata) => Promise<void>
   setCurrentProject: (currentProject: string) => void
   addApp: (app: string) => void
   setCurrentApp: (currentApp: string) => void
   removeApp: (app: string) => void
   setMolds: (molds: Molds) => void
   setTextState: (text: EditorTextState) => void
-  saveFiles: () => Promise<void>
+  saveFiles: (project?: Project) => Promise<void>
+  deleteProject: () => Promise<void>
   submitTest: (isContract: boolean) => Promise<void>
   addTest: (test: Test) => void
   updateTest: (test: Test) => void
@@ -58,13 +59,40 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
     init: async () => {
       api.subscribe(createSubscription('citadel', '/citadel/types', handleMoldsUpdate(get, set)))
 
-      if (get().projects.length > 0) {
-        set({ route: { route: 'contract', subRoute: 'main' } })
+      const rawProjects = await api.scry({ app: 'citadel', path: '/projects-json' })
+
+      const parseRawProject = (rawProject: any): Project => {
+        const [title] = rawProject
+        const text = rawProject.slice(1)
+          .reduce((acc:  { [key: string]: string }, cur:any) => {
+            const file = cur.flat(Infinity)
+            acc[`contract_${file[1].path[0]}`] = file[1].text
+            return acc
+          }, {})
+
+        return {
+          title,
+          text,
+          molds: {
+            actions: {},
+            rice: {}
+          },
+          testData: {
+            tests: [],
+            grains: []
+          }
+        }
+      }
+
+      if (rawProjects && rawProjects.length) {
+        const projects = rawProjects.filter((rp: any) => rp).map(parseRawProject)
+        set({ currentProject: projects[0].title, projects, route: { route: 'contract', subRoute: 'main' } })
       }
 
       set({ loading: false })
     },
-    createProject: async (options: { [key: string]: string }) => {
+    createProject: async (options: { [key: string]: string }, rawMetadata?: RawMetadata) => {
+      const metadataGrain = rawMetadata && genFungibleMetadata(rawMetadata)
       const { projects } = get()
       
       // TODO: base the values off of the selections
@@ -72,7 +100,7 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       // export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper'
       const newProject = {
         title: options.title,
-        testData: fungibleTokenTestData,
+        testData: metadataGrain ? genFungibleTokenTestData(metadataGrain) : fungibleTokenTestData,
         molds: DEV_MOLDS,
         text: {
           contract_main: initialMain,
@@ -84,6 +112,7 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
         }
       }
 
+      await get().saveFiles(newProject)
       set({ projects: projects.concat([newProject]), currentProject: options.title })
     },
     setCurrentProject: (currentProject: string) => set({ currentProject }),
@@ -98,23 +127,37 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, molds } : p) })
     },
     setTextState: (text: EditorTextState) => set({ projects: get().projects.map((p) => p.title === get().currentProject ? { ...p, text } : p) }),
-    saveFiles: async () => {
-      console.log(1, 'saving')
-      const { text } = get().projects.find(p => p.title === get().currentProject) || { text: null }
+    saveFiles: async (project?: Project) => {
+      const targetProject = project?.title || get().currentProject
+      console.log(1, 'saving', targetProject)
+      const { text, testData } = project || get().projects.find(p => p.title === get().currentProject) || { text: null }
       console.log(2, text)
       if (text !== null) {
-      await api.poke({
+        await api.poke({
           app: 'citadel',
           mark: 'citadel-action',
           json: {
-            // {\"save\":\{\"gall\":\{\"groms\":null,\"charter\":\"\"}}}
             save: {
               arena: 'contract',
-              deeds: [{dir: 'lib', scroll: {text: 'libtext', project: 'project-name', path: '/lib/hoon'}}],
+              deeds: [
+                {
+                  dir: 'lib',
+                  scroll: { text: text.contract_main, project: targetProject, path: '/main/hoon' }
+                },
+                {
+                  dir: 'lib',
+                  scroll: { text: text.contract_types, project: targetProject, path: '/types/hoon' }
+                },
+                {
+                  dir: 'lib',
+                  scroll: { text: JSON.stringify(testData), project: targetProject, path: '/tests/json' }
+                },
+              ],
               charter: text.contract_main
             }
           }
         })
+        console.log(3, 'success')
       }
     },
     submitTest: async (isContract: boolean) => {
@@ -146,14 +189,19 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       // the `mark` needs to be updated
       await api.poke({ app: 'citadel', mark: 'citadel-poke', json: {} })
     },
+    deleteProject: async () => {
+      const { currentProject, projects, route } = get()
+      await api.poke({ app: 'citadel', mark: 'citadel-action', json: { delete: currentProject } })
+      const newProjects = projects.filter(p => p.title !== currentProject)
+      set({ projects: newProjects, currentProject: newProjects[0]?.title || '', route: newProjects.length < 1 ? { route: 'project', subRoute: 'new' } : route })
+    },
     addTest: (test: Test) => {
       const { projects, currentProject } = get()
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.concat([test]) } } : p) })
     },
     updateTest: (newTest: Test) => {
       const { projects, currentProject } = get()
-      // TODO: change the unique identifier for test to id
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.map((test) => test.input.cart.batch === newTest.input.cart.batch ? newTest : test) } } : p) })
+      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.map((test) => test.id === newTest.id ? newTest : test) } } : p) })
     },
     removeTest: (index: number) => {
       const { projects, currentProject } = get()

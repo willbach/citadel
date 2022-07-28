@@ -6,23 +6,30 @@ import 'codemirror/addon/display/placeholder'
 import Button from '../components/form/Button'
 import Col from '../components/spacing/Col'
 import Row from '../components/spacing/Row'
-
-import './NewProjectView.scss'
 import useContractStore from '../store/contractStore';
 import Input from '../components/form/Input';
+import { BLANK_METADATA, RawMetadata } from '../code-text/test-data/fungible';
 
-type CreationStep = 'title' | 'project' | 'token' |  'template' | 'tokenName'
-export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper' | 'title' | 'tokenName'
+import './NewProjectView.scss'
+import { MetadataForm } from '../components/forms/MetadataForm';
+
+type CreationStep = 'title' | 'project' | 'token' |  'template' | 'metadata'
+export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper' | 'title' | 'metadata'
 
 const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   const { projects, createProject, setRoute } = useContractStore()
   
   const [step, setStep] = useState<CreationStep>('title')
   const [options, setOptions] = useState<{ [key: string]: CreationOption | string | undefined }>({ title: '' })
+  const [metadata, setMetadata] = useState<RawMetadata>(BLANK_METADATA)
 
-  const onSelect = useCallback((option: CreationOption) => () => {
+  const onSelect = useCallback((option: CreationOption) => async () => {
     switch (step) {
       case 'title':
+        if (projects.find(({ title }) => title === options.title)) {
+          window.alert('You already have a project with that name')
+          break
+        }
         setStep('project')
         break
       case 'project':
@@ -36,19 +43,19 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
       case 'template':
         if (option === 'issue') {
           setOptions({ ...options, template: option })
-          setStep('tokenName')
+          setStep('metadata')
         } else {
           createProject({ ...options, template: option })
           setRoute({ route: 'contract', subRoute: 'main' })
         }
         break
       default:
-        createProject(options as { [key: string]: string })
+        await createProject(options as { [key: string]: string }, metadata)
         setRoute({ route: 'contract', subRoute: 'main' })
         break
     }
     setOptions({ ...options,  })
-  }, [step, setStep, options, setOptions, createProject, setRoute])
+  }, [step, setStep, options, setOptions, projects, createProject, metadata, setRoute])
 
   const onBack = useCallback(() => {
     switch (step) {
@@ -67,8 +74,9 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         setOptions({ ...options, token: undefined })
         setStep('token')
         break
-      case 'tokenName':
+      case 'metadata':
         setOptions({ ...options, template: undefined })
+        setMetadata(BLANK_METADATA)
         setStep('template')
         break
     }
@@ -94,9 +102,9 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
           </Row>
           <Input
             style={{ width: 220 }}
-            onChange={(e) => setOptions({ title: e.target.value })}
+            onChange={(e) => setOptions({ title: e.target.value?.replace(' ', '') })}
             value={options.title || ''}
-            placeholder="Title"
+            placeholder="Title (no spaces)"
           />
           <Button variant='dark' style={{ marginTop: 16, width: 240, justifyContent: 'center' }} onClick={onSelect('title')}>
             Next
@@ -159,17 +167,9 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         <>
           <Row style={{ width: '100%', position: 'relative', justifyContent: 'center' }}>
             {backButton}
-            <h3>Token Name:</h3>
+            <h3>Token Info:</h3>
           </Row>
-          <Input
-            style={{ width: 220 }}
-            onChange={(e) => setOptions({ ...options, tokenName: e.target.value })}
-            value={options.tokenName || ''}
-            placeholder="3-4 characters"
-          />
-          <Button variant='dark' style={{ marginTop: 16, width: 240, justifyContent: 'center' }} onClick={onSelect('tokenName')}>
-            Next
-          </Button>
+          <MetadataForm metadata={metadata} setMetadata={setMetadata} onSubmit={onSelect('metadata')} />
         </>
       )
     }
