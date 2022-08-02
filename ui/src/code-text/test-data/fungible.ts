@@ -33,7 +33,7 @@ export const genFungibleMetadata = ({ name, symbol, decimals, supply, cap, minta
       mintable: mintable ? 'true' : 'false',
       minters: minters.split(',').map(m => m.trim()),
       deployer,
-      salt
+      salt: id
     }
   }
 }
@@ -137,5 +137,5 @@ export const fungibleTokenTestData : TestData = {
 
 export const genFungibleTokenTestData = (metadataGrain: TestGrain) => ({
   ...fungibleTokenTestData,
-  grains: [metadataGrain, ...fungibleTokenTestData.grains]
+  grains: [metadataGrain, ...fungibleTokenTestData.grains.map(g => ({ ...g, rice: { ...g.rice, salt: metadataGrain.rice.salt } }))]
 })

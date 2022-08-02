@@ -19,11 +19,13 @@ export const Values = ({ values, actionMold, test, indent = 0 }: ValuesProps) =>
   if (typeof values === 'string') {
     return <div style={indentStyle}>{values.length > 11 ? truncateString(values) : values}</div>
   } else if (Array.isArray(values)) {
-    <Col style={indentStyle}>
-      {values.map((value) => (
-        <Values key={JSON.stringify(value)} values={value} indent={indent + 1} actionMold={actionMold} />
-      ))}
-    </Col>
+    return (
+      <Col style={indentStyle}>
+        {values.map((value) => (
+          <Values key={JSON.stringify(value)} values={value} indent={indent + 1} actionMold={actionMold} />
+        ))}
+      </Col>
+    )
   }
 
   // TODO: check if value is a grain, if so, add a droppable

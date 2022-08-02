@@ -9,9 +9,10 @@ import Row from '../components/spacing/Row'
 import useContractStore from '../store/contractStore';
 import Input from '../components/form/Input';
 import { BLANK_METADATA, RawMetadata } from '../code-text/test-data/fungible';
+import { MetadataForm } from '../components/forms/MetadataForm';
+import LoadingOverlay from '../components/popups/LoadingOverlay';
 
 import './NewProjectView.scss'
-import { MetadataForm } from '../components/forms/MetadataForm';
 
 type CreationStep = 'title' | 'project' | 'token' |  'template' | 'metadata'
 export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper' | 'title' | 'metadata'
@@ -22,6 +23,7 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   const [step, setStep] = useState<CreationStep>('title')
   const [options, setOptions] = useState<{ [key: string]: CreationOption | string | undefined }>({ title: '' })
   const [metadata, setMetadata] = useState<RawMetadata>(BLANK_METADATA)
+  const [loading, setLoading] = useState(false)
 
   const onSelect = useCallback((option: CreationOption) => async () => {
     switch (step) {
@@ -50,7 +52,9 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         }
         break
       default:
+        setLoading(true)
         await createProject(options as { [key: string]: string }, metadata)
+        setLoading(false)
         setRoute({ route: 'contract', subRoute: 'main' })
         break
     }
@@ -178,28 +182,9 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   return (
     <Col style={{ position: 'absolute', visibility: hide ? 'hidden' : 'visible', width: '100%', maxWidth: 600, height: '80%', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', justifySelf: 'center' }}>
       {renderContent()}
+      <LoadingOverlay loading={loading} />
     </Col>
   )
 }
 
 export default NewProjectView
-
-// import Iframe from 'react-iframe'
-// import { Resizable, ResizeCallback } from 're-resizable'
-// import create from 'zustand'
-// import { persist } from 'zustand/middleware'
-// const termUrl = '/apps/webterm'
-
-// const windowSettings = create(persist((set, get) => ({
-//   termRatio: .66
-// }), {
-//   name: 'citadel-settings'
-// }))
-
-// const Resizer = () => (
-//   <div className='absolute right-0 top-0 px-2 -mr-2'>
-//     <div className='flex items-center h-screen bg-gray-200'>
-//       <SelectorIcon className='h-6 w-6 text-gray-800 rotate-90' />
-//     </div>
-//   </div>
-// )

@@ -11,10 +11,9 @@ import { CodeMirrorShim, Editor } from '../components/editor/Editors'
 import useContractStore from '../store/contractStore'
 import { isMobileCheck } from '../utils/dimensions';
 import { TestView } from '../components/tests/Tests';
+import Link from '../components/nav/Link';
 
 import './EditorView.scss'
-import Link from '../components/nav/Link';
-import NewProjectView from './NewProjectView';
 
 type SelectedEditor = 'contract_main' | 'contract_types' | 'contract_tests' | 'gall_app' | 'gall_sur' | 'gall_lib'
 type SubContract = 'main' | 'types' | 'tests'
@@ -30,7 +29,7 @@ const EditorView = ({ hide = false }: { hide?: boolean }) => {
   const gall_appEditor = useRef<CodeMirrorShim>()
   const gall_surEditor = useRef<CodeMirrorShim>()
   const gall_libEditor = useRef<CodeMirrorShim>()
-  const { projects, currentProject, route, setLoading, setTextState, submitTest, saveFiles } = useContractStore()
+  const { projects, currentProject, route, setLoading, setTextState, runTests, saveFiles } = useContractStore()
   const subContract = route.subRoute
 
   const refMap = { contract_mainEditor, contract_typesEditor, contract_testsEditor: null, gall_appEditor, gall_surEditor, gall_libEditor }
@@ -47,9 +46,9 @@ const EditorView = ({ hide = false }: { hide?: boolean }) => {
     e.preventDefault()
 
     setLoading(true)
-    await submitTest(isContract)
+    await runTests()
     setLoading(false)
-  }, [isContract, submitTest, setLoading])
+  }, [runTests, setLoading])
   
   const setText = useCallback((editor: SelectedEditor) => (inputText: string) => {
     const newText = { ...text }

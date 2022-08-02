@@ -73,13 +73,13 @@ export const MetadataForm = ({ metadata, setMetadata, onSubmit }: MetadataFormPr
         placeholder="deployer"
         required
       />
-      <Input
+      {/* <Input
         style={{ width: 300, marginTop: 8 }}
         onChange={(e) => setMetadata({ ...metadata, salt: e.target.value.replace(/[^0-9a-fA-Fx]/gi, '') })}
         value={metadata.salt}
         placeholder="salt"
         required
-      />
+      /> */}
       <Button variant='dark' type="submit" style={{ margin: '16px 0px 8px', width: 240, justifyContent: 'center' }}>
         Next
       </Button>

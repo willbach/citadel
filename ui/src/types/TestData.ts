@@ -12,6 +12,8 @@ export interface Test {
       grains: string[]
     }
     action: TestAction
+    actionInvalid?: boolean
+    obsolete?: boolean
   }
   output?: {
     [key: string]: any

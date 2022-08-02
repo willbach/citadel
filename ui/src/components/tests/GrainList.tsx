@@ -28,7 +28,7 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
     padding: 8,
     border: '1px solid black',
     borderRadius: 4,
-    background: 'white',
+    background: grain.obsolete ? 'rgba(0,0,0,0.05)' : 'white',
   }
 
   const grainContent = (
@@ -55,13 +55,15 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
         <Values values={grain.rice} />
       </Col>}
       <Row style={{ position: 'absolute', top: 4, right: 4, padding: 4 }}>
-        <Button
-          onClick={() => editGrain(grain)}
-          variant='unstyled'
-          className="delete"
-          iconOnly
-          icon={<FaPen size={14} />}
-        />
+        {!grain.obsolete && (
+          <Button
+            onClick={() => editGrain(grain)}
+            variant='unstyled'
+            className="delete"
+            iconOnly
+            icon={<FaPen size={14} />}
+          />
+        )}
         <Button
           onClick={() => { if(window.confirm('Are you sure you want to remove this grain?')) removeGrain(grainIndex) }}
           variant='unstyled'
@@ -75,10 +77,10 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
   )
 
   return (
-    <Draggable draggableId={grain.id} index={grainIndex}>
+    <Draggable draggableId={grain.id} index={grainIndex} isDragDisabled={Boolean(grain.obsolete)}>
       {(provided: any, snapshot: any) => (
         <>
-        {/* TODO: mark all grains with "outdated: true" with a marker */}
+        {/* TODO: if grain is obsolete, gray it out and don't allow editing */}
           <Row key={grain.id} className="grain" innerRef={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
             {grainContent}
           </Row>

@@ -18,4 +18,6 @@ export interface TestGrain {
   'town-id': string
   rice: TestRice
   type?: string
+  obsolete?: boolean
+  riceInvalid?: boolean
 }

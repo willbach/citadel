@@ -10,12 +10,13 @@ import { initialSur } from "../code-text/gall/sur";
 import { fungibleTokenTestData, genFungibleMetadata, genFungibleTokenTestData, RawMetadata } from "../code-text/test-data/fungible";
 import { DEV_MOLDS, Molds } from "../types/Molds";
 import { EditorTextState, Project } from "../types/Project";
+import { Route } from "../types/Route";
 import { Test } from "../types/TestData";
 import { TestGrain } from "../types/TestGrain";
 import { handleMoldsUpdate } from "./subscriptions/contract";
 import { createSubscription } from "./subscriptions/createSubscription";
 
-export interface Route { route: string, subRoute?: string }
+const getCurrentProject = (curP: string, ps: Project[]) : Project | undefined => ps.find(p => p.title === curP)
 
 export interface ContractStore {
   loading: boolean
@@ -36,7 +37,7 @@ export interface ContractStore {
   setTextState: (text: EditorTextState) => void
   saveFiles: (project?: Project) => Promise<void>
   deleteProject: () => Promise<void>
-  submitTest: (isContract: boolean) => Promise<void>
+  runTests: () => Promise<void>
   addTest: (test: Test) => void
   updateTest: (test: Test) => void
   removeTest: (index: number) => void
@@ -62,8 +63,9 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const rawProjects = await api.scry({ app: 'citadel', path: '/projects-json' })
 
       const parseRawProject = (rawProject: any): Project => {
-        const [title] = rawProject
-        const text = rawProject.slice(1)
+        const formattedProject = Array.isArray(rawProject[0]) ? rawProject.flat(1) : rawProject
+        const [title] = formattedProject
+        const text = formattedProject.slice(1)
           .reduce((acc:  { [key: string]: string }, cur:any) => {
             const file = cur.flat(Infinity)
             acc[`contract_${file[1].path[0]}`] = file[1].text
@@ -77,10 +79,7 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
             actions: {},
             rice: {}
           },
-          testData: {
-            tests: [],
-            grains: []
-          }
+          testData: JSON.parse(text.contract_tests || '{"tests": [], "grains": []}')
         }
       }
 
@@ -128,11 +127,14 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
     },
     setTextState: (text: EditorTextState) => set({ projects: get().projects.map((p) => p.title === get().currentProject ? { ...p, text } : p) }),
     saveFiles: async (project?: Project) => {
-      const targetProject = project?.title || get().currentProject
-      console.log(1, 'saving', targetProject)
-      const { text, testData } = project || get().projects.find(p => p.title === get().currentProject) || { text: null }
-      console.log(2, text)
-      if (text !== null) {
+      const { currentProject, projects } = get()
+      const projectTitle = project?.title || currentProject
+      console.log(1, 'saving', projectTitle)
+      const targetProject = getCurrentProject(projectTitle, projects)
+      console.log(2, targetProject?.text)
+      if (targetProject) {
+        const { text, testData } = targetProject
+
         await api.poke({
           app: 'citadel',
           mark: 'citadel-action',
@@ -160,34 +162,48 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
         console.log(3, 'success')
       }
     },
-    submitTest: async (isContract: boolean) => {
-      // const { text: { contract, contractTest, gall, gallTest } } = get()
-      
-      // if (isContract && (!contract || !contractTest)) {
-      //   return alert('Contract and Test sections cannot be empty')
-      // } else if (!isContract && (!gall || !gallTest)) {
-      //   return alert('Gall and Test sections cannot be empty')
-      // }
+    runTests: async () => {
+      const { currentProject, projects } = get()
+      const project = getCurrentProject(currentProject, projects)
 
-      // const json: any = {}
-      // if (isContract) {
-      //   json.contract = {
-      //     code: contract,
-      //     test: contractTest
-      //   }
-      // } else {
-      //   json.gall = {
-      //     code: gall,
-      //     test: gallTest
-      //   }
-      // }
+      if (project) {
+        const invalidTests = project.testData.tests.filter(t => t.input.obsolete || t.input.actionInvalid)
+        const invalidGrains = project.testData.grains.filter(g => g.obsolete || g.riceInvalid)
 
-      // so the `json` will look like:
-      // { contract: { code, test } } or
-      // { gall: { code, test } }
+        if (invalidTests.length) {
+          return window.alert('Please update any obsolete or invalid tests and grains')
+        } else if (invalidGrains.length) {
+          return window.alert('Please update any obsolete or invalid grains')
+        }
 
-      // the `mark` needs to be updated
-      await api.poke({ app: 'citadel', mark: 'citadel-poke', json: {} })
+        // const { text: { contract, contractTest, gall, gallTest } } = get()
+        
+        // if (isContract && (!contract || !contractTest)) {
+        //   return alert('Contract and Test sections cannot be empty')
+        // } else if (!isContract && (!gall || !gallTest)) {
+        //   return alert('Gall and Test sections cannot be empty')
+        // }
+  
+        // const json: any = {}
+        // if (isContract) {
+        //   json.contract = {
+        //     code: contract,
+        //     test: contractTest
+        //   }
+        // } else {
+        //   json.gall = {
+        //     code: gall,
+        //     test: gallTest
+        //   }
+        // }
+  
+        // so the `json` will look like:
+        // { contract: { code, test } } or
+        // { gall: { code, test } }
+  
+        // the `mark` needs to be updated
+        await api.poke({ app: 'citadel', mark: 'citadel-poke', json: {} })
+      }
     },
     deleteProject: async () => {
       const { currentProject, projects, route } = get()
