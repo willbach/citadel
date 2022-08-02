@@ -12,6 +12,10 @@ export const isActionValid = (newMolds: Molds, oldMolds: Molds, test: Test) : Te
   const newMold = newMolds.actions[actionType]
   const oldMold = oldMolds.actions[actionType]
 
+  if (!oldMold) {
+    return test
+  }
+
   return Object.keys(newMold).reduce(
     (acc: Test, key: string) => ({ ...acc, input: { ...test.input, actionInvalid: acc.input.actionInvalid || newMold[key] !== oldMold[key]  } })
   , test)
@@ -25,6 +29,10 @@ export const isRiceValid = (newMolds: Molds, oldMolds: Molds, grain: TestGrain) 
 
   const newMold = newMolds.rice[grain.type]
   const oldMold = oldMolds.rice[grain.type]
+
+  if (!oldMold) {
+    return grain
+  }
 
   return Object.keys(newMold).reduce(
     (acc: TestGrain, key: string) => ({ ...acc, riceInvalid: acc.riceInvalid || newMold[key] !== oldMold[key] })

@@ -144,15 +144,15 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
               deeds: [
                 {
                   dir: 'lib',
-                  scroll: { text: text.contract_main, project: targetProject, path: '/main/hoon' }
+                  scroll: { text: text.contract_main, project: projectTitle, path: '/main/hoon' }
                 },
                 {
                   dir: 'lib',
-                  scroll: { text: text.contract_types, project: targetProject, path: '/types/hoon' }
+                  scroll: { text: text.contract_types, project: projectTitle, path: '/types/hoon' }
                 },
                 {
                   dir: 'lib',
-                  scroll: { text: JSON.stringify(testData), project: targetProject, path: '/tests/json' }
+                  scroll: { text: JSON.stringify(testData), project: projectTitle, path: '/tests/json' }
                 },
               ],
               charter: text.contract_main
