@@ -1,6 +1,7 @@
 export const initialMain =
 `::  This is the main file for your contract
-::  zigs.hoon [UQ| DAO]
+::  [UQ| DAO]
+::  zigs.hoon v0.9
 ::
 ::  Contract for 'zigs' (official name TBD) token, the gas-payment
 ::  token for the Uqbar network.
@@ -13,100 +14,78 @@ export const initialMain =
 =,  zigs
 |_  =cart
 ++  write
-  |=  inp=embryo
+  |=  act=action:sur
   ^-  chick
-  |^
-  ?~  args.inp  !!
-  (process ;;(arguments:sur u.args.inp) (pin caller.inp))
-  ::
-  ++  process
-    |=  [args=arguments:sur caller-id=id]
-    ?-    -.args
-        %give
-      =/  giv=grain  -:~(val by grains.inp)
-      ?>  &(=(lord.giv me.cart) ?=(%& -.germ.giv))
-      =/  giver=account:sur  ;;(account:sur data.p.germ.giv)
-      ?>  (gte balance.giver (add amount.args budget.args))
-      ?~  account.args
-        ::  if receiver doesn't have an account, must produce one for them
-        =+  (fry-rice to.args me.cart town-id.cart salt.p.germ.giv)
-        =/  new=grain
-          [- me.cart to.args town-id.cart [%& salt.p.germ.giv [0 ~ metadata.giver]]]
-        :+  %|
-          :+  me.cart  town-id.cart
-          [caller.inp \`[%give to.args \`id.new amount.args budget.args] (silt ~[id.giv]) (silt ~[id.new])]
-        [~ (malt ~[[id.new new]]) ~]
-      ::  otherwise, add to the existing account for that pubkey
-      =/  rec=grain  (~(got by owns.cart) u.account.args)
-      ?>  &(=(holder.rec to.args) ?=(%& -.germ.rec))
-      =/  receiver=account:sur  ;;(account:sur data.p.germ.rec)
-      ?>  =(metadata.receiver metadata.giver)
-      =:  data.p.germ.giv  giver(balance (sub balance.giver amount.args))
-          data.p.germ.rec  receiver(balance (add balance.receiver amount.args))
-      ==
-      [%& (malt ~[[id.giv giv] [id.rec rec]]) ~ ~]
-    ::
-        %take
-      =/  giv=grain  (~(got by owns.cart) from-account.args)
-      ?>  ?=(%& -.germ.giv)
-      =/  giver=account:sur  ;;(account:sur data.p.germ.giv)
-      =/  allowance=@ud  (~(got by allowances.giver) caller-id)
-      ?>  (gte balance.giver amount.args)
-      ?>  (gte allowance amount.args)
-      ?~  account.args
-        =+  (fry-rice to.args me.cart town-id.cart salt.p.germ.giv)
-        =/  new=grain
-          [- me.cart to.args town-id.cart [%& salt.p.germ.giv [0 ~ metadata.giver]]]
-        :+  %|
-          :+  me.cart  town-id.cart
-          [caller.inp \`[%take to.args \`id.new id.giv amount.args] ~ (silt ~[id.giv id.new])]
-        [~ (malt ~[[id.new new]]) ~]
-      =/  rec=grain  (~(got by owns.cart) u.account.args)
-      ?>  &(=(holder.rec to.args) ?=(%& -.germ.rec))
-      =/  receiver=account:sur  ;;(account:sur data.p.germ.rec)
-      ?>  =(metadata.receiver metadata.giver)
-      =:  data.p.germ.rec  receiver(balance (add balance.receiver amount.args))
-          data.p.germ.giv
-        %=  giver
-          balance  (sub balance.giver amount.args)
-          allowances  (~(jab by allowances.giver) caller-id |=(old=@ud (sub old amount.args)))
-        == 
-      ==
-      [%& (malt ~[[id.giv giv] [id.rec rec]]) ~ ~]
-    ::
-        %set-allowance
-      =/  acc=grain  -:~(val by grains.inp)
-      ?>  !=(who.args holder.acc)
-      ?>  &(=(lord.acc me.cart) ?=(%& -.germ.acc))
-      =/  =account:sur  ;;(account:sur data.p.germ.acc)
-      =.  data.p.germ.acc
-        account(allowances (~(put by allowances.account) who.args amount.args))
-      [%& (malt ~[[id.acc acc]]) ~ ~]
+  ?-    -.act
+      %give
+    =+  \`grain\`(need (scry from-account.act))
+    =/  giver  (husk account:sur - \`me.cart ~)
+    ::  contract can initiate a %give, or holder of grain can.
+    ?>  |(=(id.from.cart me.cart) =(id.from.cart holder.giver))
+    ::  unlike other assertions, this is non-optional: we must confirm
+    ::  that the giver's zigs balance is enough to cover the maximum
+    ::  cost in the original transaction, which is provided in budget
+    ::  argument via execution engine.
+    ?>  (gte balance.data.giver (add amount.act budget.act))
+    ?~  to-account.act
+      ::  if no receiver account specified, generate new account for them
+      =/  =id  (fry-rice me.cart to.act town-id.cart salt.giver)
+      =/  =rice
+        [salt.giver %account [0 ~ metadata.data.giver] id me.cart to.act town-id.cart]
+      =/  next  [%give to.act amount.act id.giver \`id.rice]
+      (continuation [me.cart town-id.cart next]^~ (result ~ [%& rice]^~ ~ ~))
+    ::  have a specified receiver account, grab it and add to balance
+    =+  \`grain\`(need (scry u.to-account.act))
+    =/  receiver  (husk account:sur - \`me.cart \`to.act)
+    =:  balance.data.giver     (sub balance.data.giver amount.act)
+        balance.data.receiver  (add balance.data.receiver amount.act)
     ==
-  --
+    (result [[%& giver] [%& receiver] ~] ~ ~ ~)
+  ::
+      %take
+    =+  (need (scry from-account.act))
+    =/  giver  (husk account:sur - \`me.cart ~)
+    ::  no assertions required here for balance or allowance,
+    ::  because subtract underflow will crash when we try to edit these.
+    ?~  to-account.act
+      ::  if no receiver account specified, generate new account for them
+      =/  =id  (fry-rice me.cart to.act town-id.cart salt.giver)
+      =/  =rice
+        [salt.giver %account [0 ~ metadata.data.giver] id me.cart to.act town-id.cart]
+      =/  next  [%take to.act amount.act id.giver \`id.rice]
+      (continuation [me.cart town-id.cart next]^~ (result ~ [%& rice]^~ ~ ~))
+    ::  have a specified receiver account, grab it and add to balance
+    =+  (need (scry u.to-account.act))
+    =/  receiver  (husk account:sur - \`me.cart \`to.act)
+    =:  balance.data.giver     (sub balance.data.giver amount.act)
+        balance.data.receiver  (add balance.data.receiver amount.act)
+    ::
+          allowances.data.giver
+      %+  ~(jab by allowances.data.giver)
+        id.from.cart
+      |=(old=@ud (sub old amount.act))
+    ==
+    (result [[%& giver] [%& receiver] ~] ~ ~ ~)
+  ::
+      %set-allowance
+    ::  cannot set an allowance to ourselves
+    ?>  !=(who.act id.from.cart)
+    =+  (need (scry account.act))
+    =/  account  (husk account:sur - \`me.cart \`id.from.cart)
+    =.  allowances.data.account
+      (~(put by allowances.data.account) who.act amount.act)
+    (result [%& account]^~ ~ ~ ~)
+  ==
 ::
 ++  read
-  |_  args=path
+  |_  =path
   ++  json
     ^-  ^json
-    ?+    args  !!
-        [%rice-data ~]
-      ?>  =(1 ~(wyt by owns.cart))
-      =/  g=grain  -:~(val by owns.cart)
-      ?>  ?=(%& -.germ.g)
-      ?.  ?=([@ @ @ @ ?(~ [~ @]) ? ?(~ ^) @ @] data.p.germ.g)
-        (account:enjs:lib ;;(account:sur data.p.germ.g))
-      (token-metadata:enjs:lib ;;(token-metadata:sur data.p.germ.g))
-    ::
-        [%rice-data @ ~]
-      =/  data  (cue (slav %ud i.t.args))
-      ?.  ?=([@ @ @ @ ?(~ [~ @]) ? ?(~ ^) @ @] data)
-        (account:enjs:lib ;;(account:sur data))
-      (token-metadata:enjs:lib ;;(token-metadata:sur data))
-    ::
-        [%egg-args @ ~]
-      %-  arguments:enjs:lib
-      ;;(arguments:sur (cue (slav %ud i.t.args)))
+    ?+    path  !!
+        [%get-balance @ ~]
+      =+  (need (scry (slav %ux i.t.path)))
+      =+  (husk account:sur - ~ ~)
+      \`^json\`[%n (scot %ud balance.data.-)]
     ==
   ::
   ++  noun

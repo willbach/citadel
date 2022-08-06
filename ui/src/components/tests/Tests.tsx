@@ -8,7 +8,7 @@ import useContractStore from '../../store/contractStore';
 import Modal from '../popups/Modal';
 import Button from '../form/Button';
 import Input from '../form/Input';
-import { FormField, generateFormValues, grainFromForm, testFromForm, validateFormValues } from '../../utils/form';
+import { FormField, generateFormValues, grainFromForm, testFromForm, updateField, validateFormValues } from '../../utils/form';
 import { Select } from '../form/Select';
 import { DROPPABLE_DIVIDER, TestList } from './TestList';
 import { GrainList } from './GrainList';
@@ -41,8 +41,9 @@ export const TestView = () => {
 
   const selectRice = useCallback((rice, grain?) => {
     setGrainFormValues(generateFormValues('grain', molds.rice[rice], grain))
+    console.log(molds.rice)
     setGrainType(rice)
-  }, [molds.rice, setGrainFormValues])
+  }, [molds.rice, setGrainFormValues, setGrainType])
 
   const editGrain = useCallback((grain: TestGrain) => {
     selectRice(grain.type, grain)
@@ -63,7 +64,7 @@ export const TestView = () => {
 
   const updateGrainFormValue = useCallback((key: string, value: string) => {
     const newValues = { ...grainFormValues }
-    newValues[key].value = value
+    updateField(newValues[key], value)
     setGrainFormValues(newValues)
   }, [grainFormValues, setGrainFormValues])
 
@@ -85,7 +86,7 @@ export const TestView = () => {
       const newTest = testFromForm(testFormValues, actionType, oldTest.id)
       newTest.input.cart = oldTest.input.cart
       Object.keys(oldTest.input.action).forEach(key => {
-        if (testFormValues[key].type.includes('%grain')) {
+        if (testFormValues[key] && testFormValues[key].type.includes('%grain')) {
           newTest.input.action[key] = oldTest.input.action[key]
         }
       })

@@ -3,6 +3,8 @@ import { TestGrain } from "./TestGrain"
 
 export interface Test {
   id: string
+  focus?: boolean
+  exclude?: boolean
   input: {
     cart: {
       me: string

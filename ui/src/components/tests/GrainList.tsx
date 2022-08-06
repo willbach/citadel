@@ -80,7 +80,6 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
     <Draggable draggableId={grain.id} index={grainIndex} isDragDisabled={Boolean(grain.obsolete)}>
       {(provided: any, snapshot: any) => (
         <>
-        {/* TODO: if grain is obsolete, gray it out and don't allow editing */}
           <Row key={grain.id} className="grain" innerRef={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
             {grainContent}
           </Row>

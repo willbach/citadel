@@ -25,7 +25,6 @@ export const Sidebar = () => {
 
   const buttons = [
     [<FaRegPlusSquare />, () => setRoute({ route: 'project', subRoute: 'new' })],
-    // TODO: don't allow saving if any tests contain grains with "outdated: true"
     [<FaSave />, () => saveFiles()],
     [<FaDownload />, () => null],
     [<FaTrash />, () => {

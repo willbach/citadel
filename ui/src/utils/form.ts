@@ -2,7 +2,7 @@ import { TestAction, TestActionValue } from "../types/TestAction"
 import { Test } from "../types/TestData"
 import { TestGrain, TestRice, TestRiceValue } from "../types/TestGrain"
 import { UqbarType } from "../types/UqbarType"
-import { removeDots } from "./format"
+import { formatType, removeDots } from "./format"
 
 const GRAIN_FORM_VALUES_COMMON: { [key: string]: any } = {
   id: '%id',
@@ -35,8 +35,8 @@ const findValue = (obj: { [key: string]: any }, key: string) : string => {
 export interface FormField { value: string, type: UqbarType }
 
 export const generateFormValues = (type: 'grain' | 'test', data: TestRice | TestAction, edit?: Test | TestGrain): { [key: string]: FormField } => {
-  // TODO: populate the fields with the values from "edit" arg
   const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON, ...data } : { ...TEST_FORM_VALUES_COMMON, ...data }
+  console.log(allFields)
   Object.keys(allFields).forEach((key) => allFields[key] = { type: allFields[key], value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' })
   return allFields
 }
@@ -45,15 +45,15 @@ export const testFromForm = (testFormValues: { [key: string]: FormField }, actio
   id,
   input: {
     cart: {
-      me: testFormValues.me.value,
-      from: testFormValues.from.value,
+      me: formatType(testFormValues.me.type, testFormValues.me.value),
+      from: formatType(testFormValues.from.type, testFormValues.from.value),
       batch: 0,
-      'town-id': testFormValues['town-id'].value,
+      'town-id': formatType(testFormValues['town-id'].type, testFormValues['town-id'].value),
       grains: []
     },
     action: Object.keys(testFormValues).reduce((acc, key) => {
       if (!Object.keys(TEST_FORM_VALUES_COMMON).includes(key)) {
-        acc[key] = testFormValues[key].value as TestActionValue
+        acc[key] = formatType(testFormValues[key].type, testFormValues[key].value)
       }
       return acc
     }, { type: actionType } as TestAction),
@@ -61,14 +61,14 @@ export const testFromForm = (testFormValues: { [key: string]: FormField }, actio
 })
 
 export const grainFromForm = (testGrainValues: { [key: string]: FormField }, grainType: string) => ({
-  id: testGrainValues.id.value,
-  lord: testGrainValues.lord.value,
-  holder: testGrainValues.holder.value,
-  'town-id': testGrainValues['town-id'].value,
+  id: formatType(testGrainValues.id.type, testGrainValues.id.value),
+  lord: formatType(testGrainValues.lord.type, testGrainValues.lord.value),
+  holder: formatType(testGrainValues.holder.type, testGrainValues.holder.value),
+  'town-id': formatType(testGrainValues['town-id'].type, testGrainValues['town-id'].value),
   type: grainType,
   rice: Object.keys(testGrainValues).reduce((acc, key) => {
     if (!Object.keys(GRAIN_FORM_VALUES_COMMON).includes(key)) {
-      acc[key] = testGrainValues[key].value as TestRiceValue
+      acc[key] = formatType(testGrainValues[key].type, testGrainValues[key].value)
     }
     return acc
   }, {} as TestRice),
@@ -78,6 +78,28 @@ const HEX_REGEX = /^(0x)?[0-9A-Fa-f]+$/i
 const BIN_REGEX = /^(0b)?[0-1]+$/i
 
 const isValidHex = (str: string) => HEX_REGEX.test(str)
+
+export const formatField: { [key: string]: (val: string) => string } = {
+  '%id': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '%grain': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '@': (value: string) => value.replace(/[^0-9]/, ''),
+  '@da': (value: string) => value,
+  '@p': (value: string) => value.replace(/[^A-Za-z~-]/, ''),
+  '@rs': (value: string) => value.replace(/[^0-9.]/, ''),
+  '@t': (value: string) => value,
+  '@ub': (value: string) => value.replace(/[^b0-1.]/, ''),
+  '@ud': (value: string) => value.replace(/[^0-9.]/, ''),
+  '@ux': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '%unit': (value: string) => value,
+  '%set': (value: string) => value,
+  '%map': (value: string) => value,
+  'none': (value: string) => value,
+}
+
+export const updateField = (field: FormField, value: string) => {
+  const fieldType = typeof field.type === 'string' ? field.type : 'none'
+  field.value = (formatField[fieldType] || formatField.none)(value)
+}
 
 export type TypeAnnotation = UqbarType | { [key: string]: TypeAnnotation } | UqbarType[] | (UqbarType | { [key: string]: TypeAnnotation })[]
 

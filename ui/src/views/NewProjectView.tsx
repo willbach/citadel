@@ -32,7 +32,7 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
           window.alert('You already have a project with that name')
           break
         }
-        setStep('project')
+        setStep('token')
         break
       case 'project':
         setOptions({ ...options, project: option })
@@ -72,7 +72,7 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         break
       case 'token':
         setOptions({ ...options, project: undefined })
-        setStep('project')
+        setStep('title')
         break
       case 'template':
         setOptions({ ...options, token: undefined })

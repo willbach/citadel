@@ -28,8 +28,6 @@ export const Values = ({ values, actionMold, test, indent = 0 }: ValuesProps) =>
     )
   }
 
-  // TODO: check if value is a grain, if so, add a droppable
-
   return <>
     {Object.keys(values).map((key) => {
       if (actionMold && test && (actionMold?.[key] as any)?.includes('%grain')) {
@@ -54,7 +52,7 @@ export const Values = ({ values, actionMold, test, indent = 0 }: ValuesProps) =>
       return (
         key === 'type' ? null :
         <Row style={{ ...indentStyle, marginTop: 4 }} key={key}>
-          <div style={{ width: 100 }}>{key}:</div>
+          <div style={{ width: 110 }}>{key}:</div>
           <Values values={(values as any)[key]} indent={indent + 1} actionMold={actionMold} test={test} />
         </Row>
       )
