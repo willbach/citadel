@@ -1,21 +1,42 @@
-import { TestAction, TestActionValue } from "../types/TestAction"
+import { TestAction } from "../types/TestAction"
 import { Test } from "../types/TestData"
-import { TestGrain, TestRice, TestRiceValue } from "../types/TestGrain"
+import { TestGrain, TestRice } from "../types/TestGrain"
 import { UqbarType } from "../types/UqbarType"
 import { formatType, removeDots } from "./format"
 
-const GRAIN_FORM_VALUES_COMMON: { [key: string]: any } = {
+export const GRAIN_FORM_VALUES_COMMON: { [key: string]: any } = {
   id: '%id',
   lord: '%id',
   holder: '%id',
   'town-id': '%id',
+  salt: '@',
+  label: '@tas',
 }
 
 export const TEST_FORM_VALUES_COMMON: { [key: string]: any } = {
   me: '%id',
   id: '%id',
   from: '(id, nonce)',
-  'town-id': '%id'
+  'town-id': '%id',
+  'action-text': '@t',
+}
+
+export const formatField: { [key: string]: (val: string) => string } = {
+  '%id': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '%grain': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '@': (value: string) => value.replace(/[^0-9]/, ''),
+  '@da': (value: string) => value,
+  '@p': (value: string) => value.replace(/[^A-Za-z~-]/, ''),
+  '@rs': (value: string) => value.replace(/[^0-9.]/, ''),
+  '@t': (value: string) => value,
+  '@ub': (value: string) => value.replace(/[^b0-1.]/, ''),
+  '@ud': (value: string) => value.replace(/[^0-9.]/, ''),
+  '@ux': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
+  '@tas': (value: string) => value.replace(/[^A-Za-z-]/, '').toLowerCase(),
+  '%unit': (value: string) => value,
+  '%set': (value: string) => value,
+  '%map': (value: string) => value,
+  'none': (value: string) => value,
 }
 
 const findValue = (obj: { [key: string]: any }, key: string) : string => {
@@ -33,40 +54,42 @@ const findValue = (obj: { [key: string]: any }, key: string) : string => {
 }
 
 export interface FormField { value: string, type: UqbarType }
+export interface FormValues { [key: string]: FormField }
 
-export const generateFormValues = (type: 'grain' | 'test', data: TestRice | TestAction, edit?: Test | TestGrain): { [key: string]: FormField } => {
-  const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON, ...data } : { ...TEST_FORM_VALUES_COMMON, ...data }
-  console.log(allFields)
-  Object.keys(allFields).forEach((key) => allFields[key] = { type: allFields[key], value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' })
+interface GenerateFormParams {
+  type: 'grain' | 'test'
+  name: string
+  data: TestRice | FormValues
+  copy?: boolean
+  edit?: Test | TestGrain
+}
+
+export const generateFormValues = ({ type, name, data, copy = false, edit }: GenerateFormParams): FormValues => {
+  const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON, ...(edit && 'data' in edit ? edit.data : {}) } : { ...TEST_FORM_VALUES_COMMON, ...data }
+  Object.keys(allFields).forEach((key) => allFields[key] = { type: formatField[allFields[key]] ? allFields[key] : 'none', value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' })
+  allFields.label.value = name
   return allFields
 }
 
-export const testFromForm = (testFormValues: { [key: string]: FormField }, actionType: string, id: string) => ({
+export const copyFormValues = (values: FormValues) => Object.keys(values).reduce((vals, key) => {
+  vals[key] = { type: values[key].type, value: values[key].value }
+  return vals
+}, {} as FormValues)
+
+export const testFromForm = (testFormValues: FormValues, actionType: string, id: string): Test => ({
   id,
-  input: {
-    cart: {
-      me: formatType(testFormValues.me.type, testFormValues.me.value),
-      from: formatType(testFormValues.from.type, testFormValues.from.value),
-      batch: 0,
-      'town-id': formatType(testFormValues['town-id'].type, testFormValues['town-id'].value),
-      grains: []
-    },
-    action: Object.keys(testFormValues).reduce((acc, key) => {
-      if (!Object.keys(TEST_FORM_VALUES_COMMON).includes(key)) {
-        acc[key] = formatType(testFormValues[key].type, testFormValues[key].value)
-      }
-      return acc
-    }, { type: actionType } as TestAction),
-  }
+  input: { action: actionType, formValues: copyFormValues(testFormValues) }
 })
 
-export const grainFromForm = (testGrainValues: { [key: string]: FormField }, grainType: string) => ({
+export const grainFromForm = (testGrainValues: FormValues, grainType: string) => ({
   id: formatType(testGrainValues.id.type, testGrainValues.id.value),
   lord: formatType(testGrainValues.lord.type, testGrainValues.lord.value),
   holder: formatType(testGrainValues.holder.type, testGrainValues.holder.value),
   'town-id': formatType(testGrainValues['town-id'].type, testGrainValues['town-id'].value),
   type: grainType,
-  rice: Object.keys(testGrainValues).reduce((acc, key) => {
+  label: grainType,
+  salt: testGrainValues.salt.value,
+  data: Object.keys(testGrainValues).reduce((acc, key) => {
     if (!Object.keys(GRAIN_FORM_VALUES_COMMON).includes(key)) {
       acc[key] = formatType(testGrainValues[key].type, testGrainValues[key].value)
     }
@@ -74,27 +97,11 @@ export const grainFromForm = (testGrainValues: { [key: string]: FormField }, gra
   }, {} as TestRice),
 })
 
+const TAS_REGEX = /^[a-z-]+$/i
 const HEX_REGEX = /^(0x)?[0-9A-Fa-f]+$/i
 const BIN_REGEX = /^(0b)?[0-1]+$/i
 
 const isValidHex = (str: string) => HEX_REGEX.test(str)
-
-export const formatField: { [key: string]: (val: string) => string } = {
-  '%id': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
-  '%grain': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
-  '@': (value: string) => value.replace(/[^0-9]/, ''),
-  '@da': (value: string) => value,
-  '@p': (value: string) => value.replace(/[^A-Za-z~-]/, ''),
-  '@rs': (value: string) => value.replace(/[^0-9.]/, ''),
-  '@t': (value: string) => value,
-  '@ub': (value: string) => value.replace(/[^b0-1.]/, ''),
-  '@ud': (value: string) => value.replace(/[^0-9.]/, ''),
-  '@ux': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
-  '%unit': (value: string) => value,
-  '%set': (value: string) => value,
-  '%map': (value: string) => value,
-  'none': (value: string) => value,
-}
 
 export const updateField = (field: FormField, value: string) => {
   const fieldType = typeof field.type === 'string' ? field.type : 'none'
@@ -108,7 +115,7 @@ export const validateWithType = (type: UqbarType, value: string) => {
     case '%id':
       return isValidHex(value) && value.length <= 46
     case '@': // @	Empty aura	100	(displays as @ud)
-      return !isNaN(Number(value))
+      return !isNaN(Number(removeDots(value)))
     case '@da': // @da	Date (absolute)	~2022.2.8..16.48.20..b53a	Epoch calculated from 292 billion B.C.
       return true
     case '@p': // @p	Ship name	~zod
@@ -123,6 +130,8 @@ export const validateWithType = (type: UqbarType, value: string) => {
       return !isNaN(Number(value.replace(/\./ig, '').replace(/,/gi, '.')))
     case '@ux': // @ux	Hexadecimal value	0x1f.3c4b
       return HEX_REGEX.test(value.replace(/\./gi, ''))
+    case '@tas': // @ux	Hexadecimal value	0x1f.3c4b
+      return TAS_REGEX.test(value)
     case '?': // boolean
       return value === 'true' || value === 'false'
     case '%unit': // maybe
@@ -169,10 +178,11 @@ export const validate = (type: TypeAnnotation) => (value?: string): boolean => {
   return false
 }
 
-export const validateFormValues = (formValues: { [key: string]: FormField }) =>
+export const validateFormValues = (formValues: FormValues) =>
   Object.keys(formValues).reduce((acc, key) => {
     const { value, type } = formValues[key]
-    const isValid = Array.isArray(value) || validate(type)(removeDots(value))
+    const isValid = Array.isArray(value) ||
+      (typeof value === 'string' && validate(type)(removeDots(value)))
 
     return acc || (isValid ? '' : `Form Error: ${key} must be of type ${type}`)
   }, '')

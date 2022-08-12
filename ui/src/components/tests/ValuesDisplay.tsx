@@ -7,7 +7,7 @@ import Row from "../spacing/Row"
 import { GrainDisplaySmall } from './GrainDisplay'
 
 interface ValuesProps {
-  values: TestActionValue
+  values: any
   test?: Test
   actionMold?: TestAction
   indent?: number
@@ -30,24 +30,24 @@ export const Values = ({ values, actionMold, test, indent = 0 }: ValuesProps) =>
 
   return <>
     {Object.keys(values).map((key) => {
-      if (actionMold && test && (actionMold?.[key] as any)?.includes('%grain')) {
-        return (
-          <Row style={{ ...indentStyle, marginTop: 4 }} key={key}>
-            <div style={{ width: 115 }}>{key}:</div>
-            <Droppable droppableId={`${test.id}___${key}`} style={{ width: '100%' }}>
-              {(provided: any) => (
-                <Row {...provided.droppableProps} innerRef={provided.innerRef}
-                style={{ background: 'lightgray', width: 'calc(100% - 120px)', height: 35, borderRadius: 4, overflow: 'scroll', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                  {(test.input.action[key] as any).map((grain: string) => (
-                    <GrainDisplaySmall key={grain} grain={grain} field={key} test={test} />
-                  ))}
-                  {provided.placeholder}
-                </Row>
-              )}
-            </Droppable>
-          </Row>
-        )
-      }
+      // if (actionMold && test && (actionMold?.[key] as any)?.includes('%grain')) {
+      //   return (
+      //     <Row style={{ ...indentStyle, marginTop: 4 }} key={key}>
+      //       <div style={{ width: 115 }}>{key}:</div>
+      //       <Droppable droppableId={`${test.id}___${key}`} style={{ width: '100%' }}>
+      //         {(provided: any) => (
+      //           <Row {...provided.droppableProps} innerRef={provided.innerRef}
+      //           style={{ background: 'lightgray', width: 'calc(100% - 120px)', height: 35, borderRadius: 4, overflow: 'scroll', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      //             {(test.input.action[key] as any).map((grain: string) => (
+      //               <GrainDisplaySmall key={grain} grain={grain} field={key} test={test} />
+      //             ))}
+      //             {provided.placeholder}
+      //           </Row>
+      //         )}
+      //       </Droppable>
+      //     </Row>
+      //   )
+      // }
 
       return (
         key === 'type' ? null :

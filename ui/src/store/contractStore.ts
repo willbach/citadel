@@ -8,7 +8,7 @@ import { Route } from "../types/Route";
 import { Test } from "../types/TestData";
 import { TestGrain } from "../types/TestGrain";
 import { getInitialContractText, getInitialMolds } from "../utils/create-project";
-import { parseRawProject } from "../utils/project";
+import { parseRawGrains, parseRawProject } from "../utils/project";
 import { handleMoldsUpdate } from "./subscriptions/contract";
 import { createSubscription } from "./subscriptions/createSubscription";
 
@@ -25,6 +25,7 @@ export interface ContractStore {
   setLoading: (loading: boolean) => void
   init: () => Promise<void>
   createProject: (options: { [key: string]: string }, rawMetadata?: RawMetadata) => Promise<void>
+  getGranary: (currentProject: string) => Promise<void>
   setCurrentProject: (currentProject: string) => void
   addApp: (app: string) => void
   setCurrentApp: (currentApp: string) => void
@@ -37,10 +38,10 @@ export interface ContractStore {
   addTest: (test: Test) => void
   updateTest: (test: Test) => void
   removeTest: (index: number) => void
-  addGrain: (grain: TestGrain) => void
+  addGrain: (grain: TestGrain) => Promise<void>
   updateGrain: (grain: TestGrain) => void
   setGrains: (grains: TestGrain[]) => void
-  removeGrain: (grain: number | TestGrain) => void
+  removeGrain: (grain: number | TestGrain) => Promise<void>
 }
 
 const useContractStore = create<ContractStore>(persist<ContractStore>(
@@ -54,16 +55,28 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
     setRoute: (route: Route) => set({ route }),
     setLoading: (loading: boolean) => set({ loading }),
     init: async () => {
+      const { currentProject, getGranary } = get()
       api.subscribe(createSubscription('citadel', '/citadel/types', handleMoldsUpdate(get, set)))
 
-      const rawProjects = await api.scry({ app: 'citadel', path: '/projects-json' })
+      const rawProjects = await api.scry({ app: 'citadel', path: '/projects' })
 
       if (rawProjects && rawProjects.length) {
         const projects = rawProjects.filter((rp: any) => rp).map((rp: any) => parseRawProject(rp, get().projects))
         set({ currentProject: projects[0].title, projects, route: { route: 'contract', subRoute: 'main' } })
       }
 
+      // const rawProjects = await api.scry({ app: 'citadel', path: `/tests/${currentProject}` })
+      getGranary(currentProject)
+      const rawTests = await api.scry({ app: 'citadel', path: `/state/tests/all` })
+      console.log(rawTests)
       set({ loading: false })
+    },
+    getGranary: async (projectTitle: string) => {
+      const rawFactory = await api.scry({ app: 'citadel', path: `/factory-json/${projectTitle}` })
+      if (rawFactory && rawFactory.length) {
+        const formattedRawFactory = [[rawFactory[0], rawFactory[1]]].concat(rawFactory.slice(2))
+        get().setGrains(parseRawGrains(formattedRawFactory))
+      }
     },
     createProject: async (options: { [key: string]: string }, rawMetadata?: RawMetadata) => {
       const metadataGrain = rawMetadata && genFungibleMetadata(rawMetadata)
@@ -81,7 +94,10 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       await get().saveFiles(newProject)
       set({ projects: projects.concat([newProject]), currentProject: options.title })
     },
-    setCurrentProject: (currentProject: string) => set({ currentProject }),
+    setCurrentProject: (currentProject: string) => {
+      get().getGranary(currentProject)
+      set({ currentProject })
+    },
     addApp: (app: string) => set({ openApps: get().openApps.concat([app]), currentApp: app }),
     setCurrentApp: (currentApp: string) => set({ currentApp }),
     removeApp: (app: string) => {
@@ -97,36 +113,28 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const { currentProject, projects } = get()
       const projectTitle = project?.title || currentProject
       console.log(1, 'saving', projectTitle)
-      const targetProject = getCurrentProject(projectTitle, projects)
+      const targetProject = project || getCurrentProject(projectTitle, projects)
       console.log(2, targetProject?.text)
       if (targetProject) {
         const { text, testData } = targetProject
+        console.log(3, text.contract_main.length)
+        // TODO: save all the testData as grains and tests respectively
 
-        await api.poke({
-          app: 'citadel',
-          mark: 'citadel-action',
-          json: {
-            save: {
-              arena: 'contract',
-              deeds: [
-                {
-                  dir: 'lib',
-                  scroll: { text: text.contract_main, project: projectTitle, path: '/main/hoon' }
-                },
-                {
-                  dir: 'lib',
-                  scroll: { text: text.contract_types, project: projectTitle, path: '/types/hoon' }
-                },
-                {
-                  dir: 'lib',
-                  scroll: { text: JSON.stringify(testData), project: projectTitle, path: '/tests/json' }
-                },
-              ],
-              charter: text.contract_main
-            }
+        const json = {
+          save: {
+            project: projectTitle,
+            arena: 'contract',
+            deeds: [
+              { dir: 'lib', scroll: { text: text.contract_main, project: projectTitle, path: '/main/hoon' } },
+              { dir: 'lib', scroll: { text: text.contract_types, project: projectTitle, path: '/types/hoon' } },
+              // { dir: 'lib', scroll: { text: JSON.stringify(testData), project: projectTitle, path: '/tests/json' } },
+            ],
+            charter: text.contract_main
           }
-        })
-        console.log(3, 'success')
+        }
+
+        await api.poke({ app: 'citadel', mark: 'citadel-action', json })
+        console.log(4, 'success')
       }
     },
     runTests: async () => {
@@ -134,14 +142,14 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const project = getCurrentProject(currentProject, projects)
 
       if (project) {
-        const invalidTests = project.testData.tests.filter(t => t.input.obsolete || t.input.actionInvalid)
-        const invalidGrains = project.testData.grains.filter(g => g.obsolete || g.riceInvalid)
+        // const invalidTests = project.testData.tests.filter(t => t.input.obsolete || t.input.actionInvalid)
+        // const invalidGrains = project.testData.grains.filter(g => g.obsolete || g.riceInvalid)
 
-        if (invalidTests.length) {
-          return window.alert('Please update any obsolete or invalid tests and grains')
-        } else if (invalidGrains.length) {
-          return window.alert('Please update any obsolete or invalid grains')
-        }
+        // if (invalidTests.length) {
+        //   return window.alert('Please update any obsolete or invalid tests and grains')
+        // } else if (invalidGrains.length) {
+        //   return window.alert('Please update any obsolete or invalid grains')
+        // }
 
         const focusedTests = project.testData.tests.filter(({ focus }) => focus)
         const testsToRun = focusedTests.length ? focusedTests : project.testData.tests.filter(({ exclude }) => !exclude)
@@ -150,13 +158,24 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
           return window.alert('Please make sure you have at least 1 test that is not excluded')
         }
 
-        // TODO - Assemble json payload from testsToRun
-        // TODO - Handle case where %grain is a parameter when submitting the test (%map, %set, %list)
-
-        // so the `json` will look like:
-        // { contract: { code, test } }
+        const json = {
+          test: {
+            grains: null,
+            // "contract-id": "0x74.6361.7274.6e6f.632d.7367.697a",
+            survey: {
+              project: currentProject,
+              deeds: [],
+              arena: "contract",
+              charter: ""
+            },
+            // "yolks": ["[%give 10 0xdead 30 0x1.beef 0x1.dead]"] // this should be the list of testsToRun
+            yolks: testsToRun.map(({ input: { action, formValues } }) => `[%${action} ${Object.values(formValues).map(({ value }) => value).join(' ')}]`)
+          }
+        }
+        console.log('RUNNING TESTS:', JSON.stringify(json))
+        return
   
-        await api.poke({ app: 'citadel', mark: 'citadel-action', json: {} })
+        await api.poke({ app: 'citadel', mark: 'citadel-action', json })
       }
     },
     deleteProject: async () => {
@@ -169,16 +188,35 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const { projects, currentProject } = get()
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.concat([test]) } } : p) })
     },
-    updateTest: (newTest: Test) => {
+    updateTest: async (newTest: Test) => {
       const { projects, currentProject } = get()
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.map((test) => test.id === newTest.id ? newTest : test) } } : p) })
+      // save-test: { project: 'name', test: '[%give ...]' }
+      set({ projects: await Promise.all(projects.map(async (p) => {
+        if (p.title === currentProject) {
+          const testData = { ...p.testData, tests: p.testData.tests.map((test) => test.id === newTest.id ? newTest : test) }
+          const json = { 'save-test': { project: currentProject, test: JSON.stringify(testData) } }
+          console.log(JSON.stringify({ app: 'citadel', mark: 'citadel-action', json }))
+          await api.poke({ app: 'citadel', mark: 'citadel-action', json })
+          return { ...p, testData }
+        } else {
+          return p
+        }
+      })) })
     },
     removeTest: (index: number) => {
       const { projects, currentProject } = get()
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.filter((_, i) => i !== index) } } : p) })
     },
-    addGrain: (grain: TestGrain) => {
+    addGrain: async (grain: TestGrain) => {
       const { projects, currentProject } = get()
+
+      delete grain.type
+      const json = { "save-grain": { meal: "rice", project: currentProject, grain: { ".y": grain } } }
+      // const json = {"save-grain":{"meal":"rice","project":"zipitty","grain":{".y":{"id":"0x1.dead","lord":"0x7367.697a","holder":"0xdead","town-id":"0x123","label":"account","salt":1936157050,"data":{"metadata":"0x7367.697a","balance":"30","allowances":"(malt ~[[holder-2 1.000]])"}}}}}
+
+      console.log('GRAIN:', JSON.stringify(json))
+      await api.poke({ app: 'citadel', mark: 'citadel-action', json })
+
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains: p.testData.grains.concat([grain]) } } : p) })
     },
     updateGrain: (newGrain: TestGrain) => {
@@ -189,13 +227,21 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const { projects, currentProject } = get()
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains } } : p) })
     },
-    removeGrain: (grain: number | TestGrain) => {
-      const { projects, currentProject } = get()
+    removeGrain: async (grain: number | TestGrain) => {
+      const { projects, currentProject, saveFiles } = get()
+
+      const grainId = typeof grain === 'number' ? projects.find((p) => p.title === currentProject)?.testData?.grains?.[grain]?.id : grain.id
+      if (grainId) {
+        await api.poke({ app: 'citadel', mark: 'citadel-action', json: { 'delete-grain': { project: currentProject, 'grain-id': grainId } } })
+      }
+
       if (typeof grain === 'number') {
         set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains: p.testData.grains.filter((_, i) => i !== grain) } } : p) })
       } else {
         set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains: p.testData.grains.filter((g) => g.id !== grain.id) } } : p) })
       }
+
+      setTimeout(saveFiles, 100)
     },
   }),
   {

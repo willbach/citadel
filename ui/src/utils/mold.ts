@@ -4,11 +4,11 @@ import { TestGrain } from "../types/TestGrain"
 
 export const isActionValid = (newMolds: Molds, oldMolds: Molds, test: Test) : Test => {
   // if action type does not exist in newMolds, set obsolete: true
-  if (!test.input.action.type || !newMolds.actions[test.input.action.type as string]) {
+  if (!test.input.action || !newMolds.actions[test.input.action as string]) {
     return { ...test, input: { ...test.input, obsolete: true, actionInvalid: true } }
   }
 
-  const actionType = test.input.action.type as string
+  const actionType = test.input.action as string
   const newMold = newMolds.actions[actionType]
   const oldMold = oldMolds.actions[actionType]
 

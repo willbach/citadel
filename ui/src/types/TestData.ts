@@ -1,4 +1,5 @@
-import { TestAction } from "./TestAction"
+// import { TestAction } from "./TestAction"
+import { FormValues } from "../utils/form"
 import { TestGrain } from "./TestGrain"
 
 export interface Test {
@@ -6,16 +7,10 @@ export interface Test {
   focus?: boolean
   exclude?: boolean
   input: {
-    cart: {
-      me: string
-      from: string
-      batch: number
-      'town-id': string
-      grains: string[]
-    }
-    action: TestAction
-    actionInvalid?: boolean
+    action: string
+    formValues: FormValues    
     obsolete?: boolean
+    actionInvalid?: boolean
   }
   output?: {
     [key: string]: any

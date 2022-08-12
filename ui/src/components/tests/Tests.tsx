@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import Iframe from 'react-iframe';
 import { DragDropContext } from 'react-beautiful-dnd';
+import { FaMinusCircle, FaPlay } from 'react-icons/fa';
 import { isMobileCheck } from '../../utils/dimensions'
 import Col from '../spacing/Col'
 import Row from '../spacing/Row'
@@ -8,7 +9,7 @@ import useContractStore from '../../store/contractStore';
 import Modal from '../popups/Modal';
 import Button from '../form/Button';
 import Input from '../form/Input';
-import { FormField, generateFormValues, grainFromForm, testFromForm, updateField, validateFormValues } from '../../utils/form';
+import { copyFormValues, FormField, FormValues, generateFormValues, grainFromForm, GRAIN_FORM_VALUES_COMMON, testFromForm, updateField, validateFormValues } from '../../utils/form';
 import { Select } from '../form/Select';
 import { DROPPABLE_DIVIDER, TestList } from './TestList';
 import { GrainList } from './GrainList';
@@ -16,15 +17,18 @@ import { TestGrain, } from '../../types/TestGrain';
 import { Test } from '../../types/TestData';
 import { EMPTY_PROJECT } from '../../types/Project';
 import { genRanHex } from '../../utils/number';
+import { UqbarType, UQBAR_TYPES } from '../../types/UqbarType';
+import { TestModal } from './TestModal';
 
 import './Tests.scss'
 
 const WEBTERM_PATH = '/apps/webterm'
+const GRAIN_FORM_COMMON_LENGTH = Object.keys(GRAIN_FORM_VALUES_COMMON).length
 
 export interface TestViewProps {}
 
 export const TestView = () => {
-  const { projects, currentProject, addTest, updateTest, addGrain, updateGrain, setGrains } = useContractStore()
+  const { projects, currentProject, addTest, updateTest, addGrain, updateGrain, setGrains, runTests } = useContractStore()
 
   const project = useMemo(() => projects.find(p => p.title === currentProject), [currentProject, projects])
   const { testData, molds } = useMemo(() => project || EMPTY_PROJECT, [project])
@@ -35,31 +39,38 @@ export const TestView = () => {
   const [testFormValues, setTestFormValues] = useState<{ [key: string]: FormField }>({})
   const [grainType, setGrainType] = useState('')
   const [actionType, setActionType] = useState('')
+  const [newGrainField, setNewGrainField] = useState('')
+  const [newGrainFieldType, setNewGrainFieldType] = useState(`@t`)
   const [edit, setEdit] = useState<Test | TestGrain | undefined>()
 
   const isMobile = isMobileCheck()
 
-  const selectRice = useCallback((rice, grain?) => {
-    setGrainFormValues(generateFormValues('grain', molds.rice[rice], grain))
-    console.log(molds.rice)
+  const grainFieldPlaceHolder = useMemo(() => `field${Object.keys(grainFormValues).length}`, [grainFormValues])
+
+  const selectRice = useCallback((rice, grain?, copy?) => {
+    setGrainFormValues(generateFormValues({ type: 'grain', name: rice, data: molds.rice[rice], edit: grain, copy }))
     setGrainType(rice)
   }, [molds.rice, setGrainFormValues, setGrainType])
 
-  const editGrain = useCallback((grain: TestGrain) => {
-    selectRice(grain.type, grain)
+  const editGrain = useCallback((grain: TestGrain, copyFormat?: boolean) => {
+    selectRice(grain.label, grain, copyFormat)
     setShowGrainModal(true)
-    setEdit(grain)
+    if (!copyFormat) {
+      setEdit(grain)
+    }
   }, [selectRice, setShowGrainModal])
 
-  const selectAction = useCallback((action, test?) => {
-    setTestFormValues(generateFormValues('test', molds.actions[action], test))
+  const selectAction = useCallback((action, test?: Test, copy?: boolean) => {
+    if (test)
+      setTestFormValues(copyFormValues(test.input.formValues))
+    if (!copy)
+      setEdit(test)
     setActionType(action)
-  }, [molds.actions, setTestFormValues])
+  }, [setTestFormValues])
 
-  const editTest = useCallback((test: Test) => {
-    selectAction(test.input.action.type, test)
+  const editTest = useCallback((test: Test, copyFormat?: boolean) => {
+    selectAction(test.input.action, test, copyFormat)
     setShowTestModal(true)
-    setEdit(test)
   }, [selectAction, setShowTestModal])
 
   const updateGrainFormValue = useCallback((key: string, value: string) => {
@@ -74,6 +85,18 @@ export const TestView = () => {
     setTestFormValues(newValues)
   }, [testFormValues, setTestFormValues])
 
+  const addGrainField = useCallback(() => {
+    const newValues = { ...grainFormValues }
+    newValues[newGrainField] = { value: '', type: newGrainFieldType as UqbarType }
+    setGrainFormValues(newValues)
+  }, [newGrainField, newGrainFieldType, grainFormValues, setGrainFormValues])
+
+  const removeGrainField = useCallback((key: string) => () => {
+    const newValues = { ...grainFormValues }
+    delete newValues[key]
+    setGrainFormValues(newValues)
+  }, [grainFormValues, setGrainFormValues])
+
   const submitTest = useCallback((isUpdate = false) => () => {
     const validationError = validateFormValues(testFormValues)
 
@@ -82,23 +105,25 @@ export const TestView = () => {
     }
 
     if (isUpdate && edit) {
+      console.log('edit')
       const oldTest = edit as any
       const newTest = testFromForm(testFormValues, actionType, oldTest.id)
-      newTest.input.cart = oldTest.input.cart
-      Object.keys(oldTest.input.action).forEach(key => {
-        if (testFormValues[key] && testFormValues[key].type.includes('%grain')) {
-          newTest.input.action[key] = oldTest.input.action[key]
-        }
-      })
+      // newTest.input.cart = oldTest.input.cart
+      // Object.keys(oldTest.input.action).forEach(key => {
+      //   if (testFormValues[key] && testFormValues[key].type.includes('%grain')) {
+      //     newTest.input.action[key] = oldTest.input.action[key]
+      //   }
+      // })
       updateTest(newTest)
     } else {
+      console.log('new')
       addTest(testFromForm(testFormValues, actionType, genRanHex(20)))
     }
     setActionType('')
     setShowTestModal(false)
     setTestFormValues({})
     setEdit(undefined)
-  }, [actionType, testFormValues, edit, addTest, updateTest])
+  }, [testFormValues, edit, actionType, addTest, updateTest])
 
   const submitGrain = useCallback((isUpdate = false) => () => {
     const validationError = validateFormValues(grainFormValues)
@@ -132,29 +157,29 @@ export const TestView = () => {
         return setGrains(newGrains)
       }
       // if the source is "grains", then add to the destination action or cart as appropriate
-      const [id, iden]: string[] = destination.droppableId.split(DROPPABLE_DIVIDER)
-      const test = testData.tests.find((t) => t.id === id)
-      if (test) {
-        const newTest = { ...test }
-        const field: any = newTest.input.action[iden]
+      // const [id, iden]: string[] = destination.droppableId.split(DROPPABLE_DIVIDER)
+      // const test = testData.tests.find((t) => t.id === id)
+      // if (test) {
+      //   const newTest = { ...test }
+      //   const field: any = newTest.input.action[iden]
 
-        if (field instanceof Array) {
-          if (!field.find((g: string) => g === testData.grains[source.index].id)) {
-            // replace the grain entirely if the type is not a %set, %list, %map
-            const typeInfo = molds.actions[newTest.input.action.type as string][iden] as (string | string[])
-            if (typeInfo === '%grain' || (typeInfo.includes('%grain') && typeInfo.includes('%unit'))) {
-              newTest.input.action[iden] = [testData.grains[source.index].id]
-            } else {
-              field.push(testData.grains[source.index].id)
-            }
-          }
-        } else {
-          if (!newTest.input.cart.grains.find((g) => g === testData.grains[source.index].id)) {
-            newTest.input.cart.grains.push(testData.grains[source.index].id)
-          }
-        }
-        updateTest(newTest)
-      }
+      //   if (field instanceof Array) {
+      //     if (!field.find((g: string) => g === testData.grains[source.index].id)) {
+      //       // replace the grain entirely if the type is not a %set, %list, %map
+      //       const typeInfo = molds.actions[newTest.input.action.type as string][iden] as (string | string[])
+      //       if (typeInfo === '%grain' || (typeInfo.includes('%grain') && typeInfo.includes('%unit'))) {
+      //         newTest.input.action[iden] = [testData.grains[source.index].id]
+      //       } else {
+      //         field.push(testData.grains[source.index].id)
+      //       }
+      //     }
+      //   } else {
+      //     if (!newTest.input.cart.grains.find((g) => g === testData.grains[source.index].id)) {
+      //       newTest.input.cart.grains.push(testData.grains[source.index].id)
+      //     }
+      //   }
+      //   updateTest(newTest)
+      // }
     } else {
       // if the source is not "grains", then remove from the source action or cart as appropriate
 
@@ -186,7 +211,10 @@ export const TestView = () => {
       <Row className="tests" style={{ flexDirection: isMobile ? 'column' : 'row' }}>
         <Col style={{ height: isMobile ? 600 : '100%', width: isMobile ? '100%' : '50%' }}>
           <Row className="section-header">
-            <Row className="title">Tests</Row>
+            <Row>
+              <Row className="title" style={{ marginRight: 8 }}>Tests</Row>
+              <Button onClick={runTests} variant='unstyled' iconOnly icon={<FaPlay size={14} />} />
+            </Row>
             <Row className="action" onClick={() => setShowTestModal(true)}>+ Add Test</Row>
           </Row>
           <TestList editTest={editTest} molds={molds} />
@@ -194,39 +222,16 @@ export const TestView = () => {
         <Col style={{ height: isMobile ? 600 : '100%', width: isMobile ? '100%' : '50%' }}>
           <Col style={{ height: isMobile ? 400 : '70%', width: '100%', borderLeft: '1px solid lightgray' }}>
             <Row className="section-header">
-              <Row className="title">Test Grains</Row>
+              <Row className="title">Test Granary</Row>
               <Row className="action" onClick={() => setShowGrainModal(true)}>+ Add Grain</Row>
             </Row>
             <GrainList editGrain={editGrain} />
           </Col>
           <Iframe url={WEBTERM_PATH} height={isMobile? '200px' : '30%'} width='100%' />
         </Col>
-        <Modal show={showTestModal} hide={hideTestModal}>
-          <Col style={{ minWidth: 320, maxHeight: 'calc(100vh - 80px)', overflow: 'scroll' }}>
-            <h3 style={{ marginTop: 0 }}>Add New Test</h3>
-            <Select onChange={(e) => selectAction(e.target.value)} value={actionType} disabled={isEdit}>
-              <option>Select an Action Type</option>
-              {Object.keys(molds.actions).map(key => (
-                <option key={key} value={key}>{key}</option>
-              ))}
-            </Select>
-            {Object.keys(testFormValues).map((key) => (
-              testFormValues[key].type.includes('%grain') ? 
-              null :
-              <div key={key}>
-                {key === '%id' && <h4 key="cart" style={{ marginBottom: 0 }}>Cart</h4>}
-                <Input
-                  onChange={(e) => updateTestFormValue(key, e.target.value)}
-                  value={testFormValues[key].value}
-                  label={key}
-                  placeholder={`${key} (${testFormValues[key].type})`}
-                />
-                {key === 'town-id' && <h4 key="town-id" style={{ marginBottom: 0 }}>Action</h4>}
-              </div>
-            ))}
-            <Button onClick={submitTest(isEdit)} style={{ alignSelf: 'center', marginTop: 16 }}>{isEdit ? 'Update' : 'Add'} Test</Button>
-          </Col>
-        </Modal>
+
+        <TestModal {...{ showTestModal, hideTestModal, actionType, selectAction, isEdit, molds, testFormValues, setTestFormValues, updateTestFormValue, submitTest }} />
+
         <Modal show={showGrainModal} hide={hideGrainModal}>
           <Col style={{ minWidth: 320, maxHeight: 'calc(100vh - 80px)', overflow: 'scroll' }}>
             <h3 style={{ marginTop: 0 }}>Add New Grain</h3>
@@ -236,17 +241,37 @@ export const TestView = () => {
                 <option key={key} value={key}>{key}</option>
               ))}
             </Select>
-            {Object.keys(grainFormValues).map((key) => (
-              <Input
-                disabled={key === 'id' && isEdit}
-                key={key}
-                onChange={(e) => updateGrainFormValue(key, e.target.value)}
-                value={grainFormValues[key].value}
-                label={`${key} (${JSON.stringify(grainFormValues[key].type).replace(/"/g, '')})`}
-                placeholder={key}
-                containerStyle={{ marginTop: 4 }}
-              />
+            {Object.keys(grainFormValues).map((key, index) => (
+              <Row key={key}>
+                <Input
+                  disabled={key === 'id' && isEdit}
+                  onChange={(e) => updateGrainFormValue(key, e.target.value)}
+                  value={grainFormValues[key].value}
+                  label={`${key} (${JSON.stringify(grainFormValues[key].type).replace(/"/g, '')})`}
+                  placeholder={key}
+                  containerStyle={{ marginTop: 4, width: '100%' }}
+                />
+                {index >= GRAIN_FORM_COMMON_LENGTH && (
+                  <Button onClick={removeGrainField(key)} style={{ marginTop: 24, marginLeft: 8 }} variant="unstyled" iconOnly icon={<FaMinusCircle />} />
+                )}
+              </Row>
             ))}
+            <Row style={{ marginTop: 12, borderTop: '1px solid black', paddingTop: 12 }}>
+              <Input
+                onChange={(e) => setNewGrainField(e.target.value)}
+                value={newGrainField}
+                placeholder={grainFieldPlaceHolder}
+                containerStyle={{ width: 'calc(100% - 176px)' }}
+              />
+              <Select onChange={(e) => setNewGrainFieldType(e.target.value)}
+                value={newGrainFieldType}
+                style={{ marginLeft: 8, width: 60, padding: '6px' }}>
+                {UQBAR_TYPES.map(t => (
+                  <option key={t}>{t}</option>
+                ))}
+              </Select>
+              <Button onClick={addGrainField} style={{ marginLeft: 8, padding: '4px 8px', width: 100, justifyContent: 'center' }} variant="dark">Add Field</Button>
+            </Row>
             <Button onClick={submitGrain(isEdit)} style={{ alignSelf: 'center', marginTop: 16 }}>{isEdit ? 'Update' : 'Add'} Grain</Button>
           </Col>
         </Modal>

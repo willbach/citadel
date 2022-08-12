@@ -2,7 +2,6 @@ export type TestRiceValue = string | TestRiceValue[] | { [key: string]: string |
 
 export interface TestRice {
   // %& (?)
-  salt: string
   [key: string]: TestRiceValue
 }
 
@@ -16,7 +15,11 @@ export interface TestGrain {
   lord: string
   holder: string
   'town-id': string
-  rice: TestRice
+  label: string
+  salt: string
+  data: TestRice
+
+  // UI-specific fields
   type?: string
   obsolete?: boolean
   riceInvalid?: boolean

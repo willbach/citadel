@@ -6,6 +6,7 @@ export type HoonType = '@' // @	Empty aura	100	(displays as @ud)
   | '@ub' // @ub	Binary value	0b1100.0101	
   | '@ud' // @ud	Decimal value	100.000	Note that German-style thousands separator is used, . dot.
   | '@ux' // @ux	Hexadecimal value	0x1f.3c4b
+  | '@tas' // @tas string containing a-z and hyphens
   | '?' // boolean
   | '%unit' // maybe
   | '%set' // set

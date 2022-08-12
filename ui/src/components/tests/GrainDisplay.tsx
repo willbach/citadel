@@ -12,14 +12,14 @@ export const GrainDisplaySmall = ({ grain, field, test }: { grain: string, field
   const removeGrain = useCallback(() => {
     const newTest = { ...test }
 
-    if (field && newTest.input.action[field] && Array.isArray(newTest.input.action[field])) {
-      newTest.input.action[field] = (newTest.input.action[field] as string[]).filter(g => g !== grain)
-    } else {
-      newTest.input.cart.grains = newTest.input.cart.grains.filter((g) => g !== grain)
-    }
+    // if (field && newTest.input.action[field] && Array.isArray(newTest.input.action[field])) {
+    //   newTest.input.action[field] = (newTest.input.action[field] as string[]).filter(g => g !== grain)
+    // } else {
+    //   newTest.input.cart.grains = newTest.input.cart.grains.filter((g) => g !== grain)
+    // }
 
     updateTest(newTest)
-  }, [field, grain, test, updateTest])
+  }, [test, updateTest])
 
   return (
     <Row style={{ justifyContent: 'space-between', margin: 4, padding: '2px 6px', background: 'white', borderRadius: 4 }}>

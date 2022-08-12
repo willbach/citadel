@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Droppable, Draggable } from 'react-beautiful-dnd'
-import { FaChevronDown, FaChevronUp, FaPen } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaPen, FaCopy } from 'react-icons/fa';
 import Col from '../spacing/Col'
 import Row from '../spacing/Row'
 import useContractStore from '../../store/contractStore';
@@ -17,14 +17,14 @@ interface GrainValueDisplayProps extends GrainListProps {
 }
 
 export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDisplayProps) => {
-  const { removeGrain } = useContractStore()
+  const { removeGrain, saveFiles } = useContractStore()
   const [expanded, setExpanded] = useState(false)
 
   const grainStyle = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     width: 'calc(100% - 32px)',
-    margin: 8,
+    margin: '8px 8px 0',
     padding: 8,
     border: '1px solid black',
     borderRadius: 4,
@@ -51,21 +51,29 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
         </Row>
       </Col>
       {expanded && <Col>
-        <div>Rice:</div>
-        <Values values={grain.rice} />
+        <div>Data:</div>
+        <Values values={grain.data} />
       </Col>}
       <Row style={{ position: 'absolute', top: 4, right: 4, padding: 4 }}>
         {!grain.obsolete && (
           <Button
+            onClick={() => editGrain(grain, true)}
+            variant='unstyled'
+            iconOnly
+            icon={<FaCopy size={14} />}
+            style={{ marginRight: 8 }}
+          />
+        )}
+        {!grain.obsolete && (
+          <Button
             onClick={() => editGrain(grain)}
             variant='unstyled'
-            className="delete"
             iconOnly
             icon={<FaPen size={14} />}
           />
         )}
         <Button
-          onClick={() => { if(window.confirm('Are you sure you want to remove this grain?')) removeGrain(grainIndex) }}
+          onClick={() => { if(window.confirm('Are you sure you want to remove this grain?')) { removeGrain(grainIndex); saveFiles() } }}
           variant='unstyled'
           className="delete"
           style={{ fontSize: 20, marginLeft: 8 }}
@@ -91,7 +99,7 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
 }
 
 interface GrainListProps {
-  editGrain: (grain: TestGrain) => void
+  editGrain: (grain: TestGrain, copyFormat?: boolean) => void
 }
 
 export const GrainList = ({ editGrain }: GrainListProps) => {

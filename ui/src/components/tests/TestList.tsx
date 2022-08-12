@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { Droppable } from 'react-beautiful-dnd'
-import { FaPen, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaPen, FaTrash, FaChevronDown, FaChevronUp, FaCopy } from 'react-icons/fa';
 import Col from '../spacing/Col'
 import Row from '../spacing/Row'
 import useContractStore from '../../store/contractStore';
@@ -8,9 +8,9 @@ import Button from '../form/Button';
 import { Test } from '../../types/TestData';
 import { EMPTY_PROJECT } from '../../types/Project';
 import { Molds } from '../../types/Molds';
-import { GrainDisplaySmall } from './GrainDisplay';
 import { Values } from './ValuesDisplay';
 import Input from '../form/Input';
+import { truncateString } from '../../utils/format';
 
 export const DROPPABLE_DIVIDER = '___'
 
@@ -42,8 +42,6 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
     updateTest({ ...test, exclude: !test.exclude })
   }, [test, updateTest])
 
-  console.log(test.input.action)
-
   return (
     <Col className="action" style={{ ...testStyle, position: 'relative' }}>
       <Row style={{ justifyContent: 'space-between', borderBottom: '1px solid gray', paddingBottom: 2, marginBottom: 4 }}>
@@ -59,16 +57,21 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
         </Row>
         <Row style={{ marginRight: 4, marginTop: -4 }}>
           <Button
+            onClick={() => editTest(test, true)}
+            variant='unstyled'
+            iconOnly
+            icon={<FaCopy size={14} />}
+          />
+          <Button
             onClick={() => editTest(test)}
             variant='unstyled'
-            className="delete"
             iconOnly
             icon={<FaPen size={14} />}
+            style={{ marginLeft: 8 }}
           />
           <Button
             onClick={() => { if(window.confirm('Are you sure you want to remove this test?')) removeTest(testIndex) }}
             variant='unstyled'
-            className="delete"
             style={{ marginLeft: 8 }}
             icon={<FaTrash size={16} />}
             iconOnly
@@ -84,39 +87,34 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
             iconOnly
             icon={expandInput ? <FaChevronUp size={16} /> : <FaChevronDown size={16} />}
           />
-          Action: %{test.input.action.type}
+          Action: %{test.input.action}
         </Row>
         {expandInput && (
           <Col style={{ width: '100%', marginBottom: 6 }}>
-            <div style={{ marginBottom: 4 }}>From: {test.input.cart.from}</div>
-            <div style={{ marginBottom: 4 }}>Cart Grains: ({test.input.cart.grains?.length})</div>
-            <Droppable droppableId={`${test.id}___${test.input.cart.from}`} style={{ width: '100%' }}>
-              {(provided: any) => (
-                <Row {...provided.droppableProps} innerRef={provided.innerRef}
-                style={{ ...provided.droppableProps.style, backgroundColor: 'lightgray', width: '100%', height: 80, borderRadius: 4, overflow: 'scroll', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                  {test.input.cart.grains.map(grain => (
-                    <GrainDisplaySmall key={grain} grain={grain} test={test} />
-                  ))}
-                  {provided.placeholder}
+            {/* display the formValues */}
+            {Object.keys(test.input.formValues).map(key => {
+              const value = test.input.formValues[key].value
+
+              return (
+                <Row style={{ marginTop: 4 }} key={key}>
+                  <div style={{ width: 110 }}>{key}:</div>
+                  <div>{value.length > 11 ? truncateString(value) : value}</div>
                 </Row>
-              )}
-            </Droppable>
-            <h4 style={{ marginBottom: 0 }}>%{test.input.action.type}</h4>
-            {/* display the action recursively */}
-            <Values indent={1} values={test.input.action} test={test} actionMold={molds.actions[test.input.action.type as string]} />
+              )
+            })}
           </Col>
         )}
       </Col>
       <Col className="output" style={{ flex: 1, marginTop: 4, paddingTop: 6 }}>
         <Row style={{ marginBottom: 4 }}>
-          <Button
+          {!!test.output && (<Button
             onClick={() => setExpandOutput(!expandOutput)}
             variant='unstyled'
             style={{ marginRight: 8, marginTop: 2, alignSelf: 'flex-start' }}
             iconOnly
             icon={expandOutput ? <FaChevronUp size={16} /> : <FaChevronDown size={16} />}
-          />
-          {test.output ? 'Expected' : ''} Output:
+          />)}
+          {test.output ? 'Expected' : ''} Output: {!test.output ? 'null' : ''}
         </Row>
         {expandOutput && (
           <Col>
@@ -129,7 +127,7 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
 }
 
 interface TestListProps {
-  editTest: (test: Test) => void
+  editTest: (test: Test, copyFormat?: boolean) => void
   molds: Molds
 }
 
