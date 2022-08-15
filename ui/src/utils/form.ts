@@ -1,3 +1,4 @@
+import { FormField, FormValues } from "../types/FormValues"
 import { TestAction } from "../types/TestAction"
 import { Test } from "../types/TestData"
 import { TestGrain, TestRice } from "../types/TestGrain"
@@ -24,7 +25,7 @@ export const TEST_FORM_VALUES_COMMON: { [key: string]: any } = {
 export const formatField: { [key: string]: (val: string) => string } = {
   '%id': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
   '%grain': (value: string) => value.replace(/[^x0-9A-Fa-f.]/, ''),
-  '@': (value: string) => value.replace(/[^0-9]/, ''),
+  '@': (value: string) => value.replace(/[^0-9.]/, ''),
   '@da': (value: string) => value,
   '@p': (value: string) => value.replace(/[^A-Za-z~-]/, ''),
   '@rs': (value: string) => value.replace(/[^0-9.]/, ''),
@@ -53,9 +54,6 @@ const findValue = (obj: { [key: string]: any }, key: string) : string => {
   }, '')
 }
 
-export interface FormField { value: string, type: UqbarType }
-export interface FormValues { [key: string]: FormField }
-
 interface GenerateFormParams {
   type: 'grain' | 'test'
   name: string
@@ -66,7 +64,13 @@ interface GenerateFormParams {
 
 export const generateFormValues = ({ type, name, data, copy = false, edit }: GenerateFormParams): FormValues => {
   const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON, ...(edit && 'data' in edit ? edit.data : {}) } : { ...TEST_FORM_VALUES_COMMON, ...data }
-  Object.keys(allFields).forEach((key) => allFields[key] = { type: formatField[allFields[key]] ? allFields[key] : 'none', value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' })
+  Object.keys(allFields).forEach((key) => {
+    if (edit && 'data' in edit && edit.data[key]) {
+      allFields[key] = edit.data[key]
+    } else {
+      allFields[key] = { type: formatField[allFields[key]] ? allFields[key] : 'none', value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' }
+    }
+  })
   allFields.label.value = name
   return allFields
 }
@@ -88,13 +92,13 @@ export const grainFromForm = (testGrainValues: FormValues, grainType: string) =>
   'town-id': formatType(testGrainValues['town-id'].type, testGrainValues['town-id'].value),
   type: grainType,
   label: grainType,
-  salt: testGrainValues.salt.value,
+  salt: typeof testGrainValues.salt.value === 'number' ? testGrainValues.salt.value : Number(removeDots(testGrainValues.salt.value)),
   data: Object.keys(testGrainValues).reduce((acc, key) => {
     if (!Object.keys(GRAIN_FORM_VALUES_COMMON).includes(key)) {
-      acc[key] = formatType(testGrainValues[key].type, testGrainValues[key].value)
+      acc[key] = { type: testGrainValues[key].type, value: formatType(testGrainValues[key].type, testGrainValues[key].value) }
     }
     return acc
-  }, {} as TestRice),
+  }, {} as FormValues),
 })
 
 const TAS_REGEX = /^[a-z-]+$/i
@@ -182,7 +186,8 @@ export const validateFormValues = (formValues: FormValues) =>
   Object.keys(formValues).reduce((acc, key) => {
     const { value, type } = formValues[key]
     const isValid = Array.isArray(value) ||
-      (typeof value === 'string' && validate(type)(removeDots(value)))
+      (typeof value === 'string' && validate(type)(removeDots(value))) ||
+      (typeof value === 'number' && validate(type)(String(value)))
 
     return acc || (isValid ? '' : `Form Error: ${key} must be of type ${type}`)
   }, '')

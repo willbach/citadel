@@ -5,7 +5,7 @@ import { fungibleTokenTestData, genFungibleMetadata, genFungibleTokenTestData, R
 import { Molds } from "../types/Molds";
 import { EditorTextState, Project } from "../types/Project";
 import { Route } from "../types/Route";
-import { Test } from "../types/TestData";
+import { Test, TestData } from "../types/TestData";
 import { TestGrain } from "../types/TestGrain";
 import { getInitialContractText, getInitialMolds } from "../utils/create-project";
 import { parseRawGrains, parseRawProject } from "../utils/project";
@@ -35,13 +35,14 @@ export interface ContractStore {
   saveFiles: (project?: Project) => Promise<void>
   deleteProject: () => Promise<void>
   runTests: () => Promise<void>
-  addTest: (test: Test) => void
-  updateTest: (test: Test) => void
-  removeTest: (index: number) => void
+  addTest: (test: Test) => Promise<void>
+  updateTest: (test: Test) => Promise<void>
+  removeTest: (index: number) => Promise<void>
   addGrain: (grain: TestGrain) => Promise<void>
-  updateGrain: (grain: TestGrain) => void
-  setGrains: (grains: TestGrain[]) => void
+  updateGrain: (grain: TestGrain) => Promise<void>
+  setGrains: (grains: TestGrain[]) => Promise<void>
   removeGrain: (grain: number | TestGrain) => Promise<void>
+  saveTestData: (testData: TestData) => Promise<TestData>
 }
 
 const useContractStore = create<ContractStore>(persist<ContractStore>(
@@ -55,28 +56,28 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
     setRoute: (route: Route) => set({ route }),
     setLoading: (loading: boolean) => set({ loading }),
     init: async () => {
-      const { currentProject, getGranary } = get()
+      // const { currentProject, getGranary } = get()
       api.subscribe(createSubscription('citadel', '/citadel/types', handleMoldsUpdate(get, set)))
-
-      const rawProjects = await api.scry({ app: 'citadel', path: '/projects' })
+      
+      const [rawProjects, rawTestData] = await Promise.all([
+        api.scry({ app: 'citadel', path: '/projects' }),
+        api.scry({ app: 'citadel', path: `/state/tests/all` }),
+      ])
 
       if (rawProjects && rawProjects.length) {
-        const projects = rawProjects.filter((rp: any) => rp).map((rp: any) => parseRawProject(rp, get().projects))
+        const projects = rawProjects.filter((rp: any) => rp).map((rp: any) => parseRawProject(rp, get().projects, rawTestData))
         set({ currentProject: projects[0].title, projects, route: { route: 'contract', subRoute: 'main' } })
       }
 
-      // const rawProjects = await api.scry({ app: 'citadel', path: `/tests/${currentProject}` })
-      getGranary(currentProject)
-      const rawTests = await api.scry({ app: 'citadel', path: `/state/tests/all` })
-      console.log(rawTests)
+      // getGranary(currentProject)
       set({ loading: false })
     },
     getGranary: async (projectTitle: string) => {
-      const rawFactory = await api.scry({ app: 'citadel', path: `/factory-json/${projectTitle}` })
-      if (rawFactory && rawFactory.length) {
-        const formattedRawFactory = [[rawFactory[0], rawFactory[1]]].concat(rawFactory.slice(2))
-        get().setGrains(parseRawGrains(formattedRawFactory))
-      }
+      // const rawFactory = await api.scry({ app: 'citadel', path: `/factory-json/${projectTitle}` })
+      // if (rawFactory && rawFactory.length) {
+      //   const formattedRawFactory = [[rawFactory[0], rawFactory[1]]].concat(rawFactory.slice(2))
+      //   get().setGrains(parseRawGrains(formattedRawFactory))
+      // }
     },
     createProject: async (options: { [key: string]: string }, rawMetadata?: RawMetadata) => {
       const metadataGrain = rawMetadata && genFungibleMetadata(rawMetadata)
@@ -169,11 +170,10 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
               charter: ""
             },
             // "yolks": ["[%give 10 0xdead 30 0x1.beef 0x1.dead]"] // this should be the list of testsToRun
-            yolks: testsToRun.map(({ input: { action, formValues } }) => `[%${action} ${Object.values(formValues).map(({ value }) => value).join(' ')}]`)
+            yolks: testsToRun.map(({ input: { action, formValues } }) => `[%${action} ${Object.values(formValues).map(({ value }: any) => value).join(' ')}]`)
           }
         }
         console.log('RUNNING TESTS:', JSON.stringify(json))
-        return
   
         await api.poke({ app: 'citadel', mark: 'citadel-action', json })
       }
@@ -184,48 +184,57 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       const newProjects = projects.filter(p => p.title !== currentProject)
       set({ projects: newProjects, currentProject: newProjects[0]?.title || '', route: newProjects.length < 1 ? { route: 'project', subRoute: 'new' } : route })
     },
-    addTest: (test: Test) => {
+    addTest: async (test: Test) => {
       const { projects, currentProject } = get()
       set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.concat([test]) } } : p) })
     },
     updateTest: async (newTest: Test) => {
-      const { projects, currentProject } = get()
-      // save-test: { project: 'name', test: '[%give ...]' }
-      set({ projects: await Promise.all(projects.map(async (p) => {
-        if (p.title === currentProject) {
-          const testData = { ...p.testData, tests: p.testData.tests.map((test) => test.id === newTest.id ? newTest : test) }
-          const json = { 'save-test': { project: currentProject, test: JSON.stringify(testData) } }
-          console.log(JSON.stringify({ app: 'citadel', mark: 'citadel-action', json }))
-          await api.poke({ app: 'citadel', mark: 'citadel-action', json })
-          return { ...p, testData }
-        } else {
-          return p
-        }
-      })) })
+      const { projects, currentProject, saveTestData } = get()
+      set({ projects: await Promise.all(projects.map(async (p) => (
+        p.title !== currentProject ? p :
+          { ...p, testData: await saveTestData({ ...p.testData, tests: p.testData.tests.map((test) => test.id === newTest.id ? newTest : test) }) }
+      ))) })
     },
-    removeTest: (index: number) => {
-      const { projects, currentProject } = get()
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, tests: p.testData.tests.filter((_, i) => i !== index) } } : p) })
+    removeTest: async (index: number) => {
+      const { projects, currentProject, saveTestData } = get()
+      set({ projects: await Promise.all(projects.map(async (p) => (
+        p.title !== currentProject ? p :
+          { ...p, testData: await saveTestData({ ...p.testData, tests: p.testData.tests.filter((_, i) => i !== index) }) }
+      ))) })
     },
     addGrain: async (grain: TestGrain) => {
-      const { projects, currentProject } = get()
-
+      const { projects, currentProject, saveTestData } = get()
       delete grain.type
       const json = { "save-grain": { meal: "rice", project: currentProject, grain: { ".y": grain } } }
-      // const json = {"save-grain":{"meal":"rice","project":"zipitty","grain":{".y":{"id":"0x1.dead","lord":"0x7367.697a","holder":"0xdead","town-id":"0x123","label":"account","salt":1936157050,"data":{"metadata":"0x7367.697a","balance":"30","allowances":"(malt ~[[holder-2 1.000]])"}}}}}
 
+      // const json = {"save-grain":{"meal":"rice","project":"zippity","grain":{".y":{"id":"0x1.beef","lord":"0x7367.697a","holder":"0xbeef","town-id":"0x123","label":"account","salt":1936157050,"data":{"metadata":"0x7367.697a","balance":"50","allowances":"(malt ~[[0xdead 1.000]])"}}}}}
+      
       console.log('GRAIN:', JSON.stringify(json))
       await api.poke({ app: 'citadel', mark: 'citadel-action', json })
 
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains: p.testData.grains.concat([grain]) } } : p) })
+      set({ projects: await Promise.all(projects.map(async (p) => (
+        p.title !== currentProject ? p :
+          { ...p, testData: await saveTestData({ ...p.testData, grains: p.testData.grains.concat([grain]) }) }
+      ))) })
     },
-    updateGrain: (newGrain: TestGrain) => {
-      const { projects, currentProject } = get()
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains: p.testData.grains.map((g) => g.id === newGrain.id ? newGrain : g) } } : p) })
+    updateGrain: async (newGrain: TestGrain) => {
+      const { projects, currentProject, saveTestData} = get()
+      delete newGrain.type
+      const json = { "save-grain": { meal: "rice", project: currentProject, grain: { ".y": newGrain } } }
+      await api.poke({ app: 'citadel', mark: 'citadel-action', json })
+
+      set({ projects: await Promise.all(projects.map(async (p) => (
+        p.title !== currentProject ? p :
+          { ...p, testData: await saveTestData({ ...p.testData, grains: p.testData.grains.map((g) => g.id === newGrain.id ? newGrain : g) }) }
+      ))) })
     },
-    setGrains: (grains: TestGrain[]) => {
-      const { projects, currentProject } = get()
-      set({ projects: projects.map(p => p.title === currentProject ? { ...p, testData: { ...p.testData, grains } } : p) })
+    setGrains: async (grains: TestGrain[]) => {
+      const { projects, currentProject, saveTestData } = get()
+
+      set({ projects: await Promise.all(projects.map(async (p) => (
+        p.title !== currentProject ? p :
+          { ...p, testData: await saveTestData({ ...p.testData, grains }) }
+      ))) })
     },
     removeGrain: async (grain: number | TestGrain) => {
       const { projects, currentProject, saveFiles } = get()
@@ -242,6 +251,13 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
       }
 
       setTimeout(saveFiles, 100)
+    },
+    saveTestData: async (testData: TestData) => {
+      const { currentProject } = get()
+      const json = { 'save-test': { project: currentProject, test: JSON.stringify(testData), override: true } }
+      console.log(JSON.stringify({ app: 'citadel', mark: 'citadel-action', json }))
+      await api.poke({ app: 'citadel', mark: 'citadel-action', json })
+      return testData
     },
   }),
   {

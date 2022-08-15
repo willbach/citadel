@@ -1,5 +1,5 @@
 // import { TestAction } from "./TestAction"
-import { FormValues } from "../utils/form"
+import { FormValues } from "./FormValues"
 import { TestGrain } from "./TestGrain"
 
 export interface Test {
@@ -8,7 +8,7 @@ export interface Test {
   exclude?: boolean
   input: {
     action: string
-    formValues: FormValues    
+    formValues: FormValues
     obsolete?: boolean
     actionInvalid?: boolean
   }

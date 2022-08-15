@@ -29,7 +29,7 @@ const testGrain = {
   'town-id': "0x1",
   type: "account",
   rice: {
-    salt: "1936157050",
+    salt: 1936157050,
     'metadata-id': "0x7367697a",
     balance: "30",
     allowances: "{ '0xbeef': 10 }"

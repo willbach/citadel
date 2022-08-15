@@ -9,7 +9,7 @@ import useContractStore from '../../store/contractStore';
 import Modal from '../popups/Modal';
 import Button from '../form/Button';
 import Input from '../form/Input';
-import { copyFormValues, FormField, FormValues, generateFormValues, grainFromForm, GRAIN_FORM_VALUES_COMMON, testFromForm, updateField, validateFormValues } from '../../utils/form';
+import { copyFormValues, generateFormValues, grainFromForm, GRAIN_FORM_VALUES_COMMON, testFromForm, updateField, validateFormValues } from '../../utils/form';
 import { Select } from '../form/Select';
 import { DROPPABLE_DIVIDER, TestList } from './TestList';
 import { GrainList } from './GrainList';
@@ -21,6 +21,7 @@ import { UqbarType, UQBAR_TYPES } from '../../types/UqbarType';
 import { TestModal } from './TestModal';
 
 import './Tests.scss'
+import { FormValues } from '../../types/FormValues';
 
 const WEBTERM_PATH = '/apps/webterm'
 const GRAIN_FORM_COMMON_LENGTH = Object.keys(GRAIN_FORM_VALUES_COMMON).length
@@ -35,8 +36,8 @@ export const TestView = () => {
 
   const [showTestModal, setShowTestModal] = useState(false)
   const [showGrainModal, setShowGrainModal] = useState(false)
-  const [grainFormValues, setGrainFormValues] = useState<{ [key: string]: FormField }>({})
-  const [testFormValues, setTestFormValues] = useState<{ [key: string]: FormField }>({})
+  const [grainFormValues, setGrainFormValues] = useState<FormValues>({})
+  const [testFormValues, setTestFormValues] = useState<FormValues>({})
   const [grainType, setGrainType] = useState('')
   const [actionType, setActionType] = useState('')
   const [newGrainField, setNewGrainField] = useState('')
@@ -89,6 +90,7 @@ export const TestView = () => {
     const newValues = { ...grainFormValues }
     newValues[newGrainField] = { value: '', type: newGrainFieldType as UqbarType }
     setGrainFormValues(newValues)
+    setNewGrainField('')
   }, [newGrainField, newGrainFieldType, grainFormValues, setGrainFormValues])
 
   const removeGrainField = useCallback((key: string) => () => {
@@ -137,13 +139,20 @@ export const TestView = () => {
     if (isUpdate) {
       updateGrain(newGrain)
     } else {
+      const targetProject = projects.find(({ title }) => title === currentProject)
+      if (targetProject) {
+        if (targetProject.testData.grains.find(({ id }) => id === newGrain.id)) {
+          return window.alert('You already have a grain with this ID, please change the ID')
+        }
+      }
+
       addGrain(newGrain)
     }
     setGrainType('')
     setShowGrainModal(false)
     setGrainFormValues({})
     setEdit(undefined)
-  }, [grainType, grainFormValues, addGrain, updateGrain])
+  }, [currentProject, projects, grainType, grainFormValues, addGrain, updateGrain])
 
   const handleDragAndDropGrain = useCallback(({ source, destination }) => {
     if (!destination)

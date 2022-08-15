@@ -1,6 +1,6 @@
 export interface TokenMetadata {
   name: string
-  salt: string
+  salt: number
   decimals: number
   deployer: string
   cap: number

@@ -25,16 +25,16 @@ export const genFungibleMetadata = ({ name, symbol, decimals, supply, cap, minta
     'town-id': "0x1",
     label: "token-metadata",
     type: "token-metadata",
-    salt: id,
+    salt: parseInt(id, 16),
     data: {
-      name,
-      symbol,
-      decimals,
-      supply,
-      cap,
-      mintable: mintable ? 'true' : 'false',
-      minters: minters.split(',').map(m => m.trim()),
-      deployer,
+      name: { type: '@t', value: name },
+      symbol: { type: '@t', value: symbol },
+      decimals: { type: '@ud', value: decimals },
+      supply: { type: '@ud', value: supply },
+      cap: { type: '@ud', value: cap },
+      mintable: { type: '?', value: mintable ? 'true' : 'false' },
+      minters: { type: '@t', value: minters.split(',').map(m => m.trim()).join(',') },
+      deployer: { type: '@ux', value: deployer },
     }
   }
 }

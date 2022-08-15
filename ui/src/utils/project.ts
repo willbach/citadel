@@ -1,11 +1,23 @@
+import { DEV_MOLDS } from "../types/Molds"
 import { Project } from "../types/Project"
 import { TestGrain } from "../types/TestGrain"
 
-export const parseRawProject = (rawProject: any, projects: Project[]): Project => {
+const parseTestData = (title: string, rawTestData: { [key: string]: string }[]) => {
+  try {
+    const rawData = rawTestData.find(td => Object.keys(td)[0] === title)
+    if (rawData) {
+      return JSON.parse(Object.values(rawData)[0][0])
+    }
+  } catch (e) {}
+  
+  return { "tests": [], "grains": [] }
+}
+
+export const parseRawProject = (rawProject: any, projects: Project[], rawTestData: { [key: string]: string }[]): Project => {
   const title = Object.keys(rawProject)[0]
   const files = rawProject[title]
-
-  const storedProject = projects.find((p) => p.title === title)
+  
+  // const storedProject = projects.find((p) => p.title === title)
   const text = files.reduce((acc:  { [key: string]: string }, cur: any) => {
       acc[`contract_${cur.scroll.path.split('/').slice(0, -1).join('')}`] = cur.scroll.text
       return acc
@@ -14,8 +26,8 @@ export const parseRawProject = (rawProject: any, projects: Project[]): Project =
   return {
     title,
     text,
-    molds: storedProject?.molds || { actions: {}, rice: {} },
-    testData: storedProject?.testData || { "tests": [], "grains": [] }
+    molds: DEV_MOLDS, // TODO: figure out how to do molds
+    testData: parseTestData(title, rawTestData)
   }
 }
 

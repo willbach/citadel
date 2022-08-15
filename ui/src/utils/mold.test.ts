@@ -24,7 +24,7 @@ const testGrain = {
   holder: "0xdead",
   'town-id': "0x1",
   type: "account",
-  salt: "1936157050",
+  salt: 1936157050,
   label: 'account',
   data: {
     'metadata-id': "0x7367697a",
@@ -53,23 +53,22 @@ const testGrain = {
 //   expect(newTest.input.obsolete).toBeTruthy()
 // });
 
-test('isRiceValid marks test as valid', () => {
-  const newGrain = isRiceValid(DEV_MOLDS, DEV_MOLDS, testGrain)
-  expect(newGrain.riceInvalid).toBeFalsy()
-  expect(newGrain.obsolete).toBeFalsy()
-});
+// test('isRiceValid marks test as valid', () => {
+//   const newGrain = isRiceValid(DEV_MOLDS, DEV_MOLDS, testGrain)
+//   expect(newGrain.riceInvalid).toBeFalsy()
+//   expect(newGrain.obsolete).toBeFalsy()
+// });
 
-test('isRiceValid marks test as invalid when mold changes', () => {
-  const NEW_MOLDS: Molds = JSON.parse(JSON.stringify(DEV_MOLDS))
-  NEW_MOLDS.rice.account.balance = '@ux'
-  const newGrain = isRiceValid(NEW_MOLDS, DEV_MOLDS, testGrain)
-  expect(newGrain.riceInvalid).toBeTruthy()
-});
+// test('isRiceValid marks test as invalid when mold changes', () => {
+//   const NEW_MOLDS: Molds = JSON.parse(JSON.stringify(DEV_MOLDS))
+//   NEW_MOLDS.rice.account.balance = '@ux'
+//   const newGrain = isRiceValid(NEW_MOLDS, DEV_MOLDS, testGrain)
+//   expect(newGrain.riceInvalid).toBeTruthy()
+// });
 
-test('isRiceValid marks test as obsolete', () => {
-  const NEW_MOLDS: Molds = JSON.parse(JSON.stringify(DEV_MOLDS))
-  delete NEW_MOLDS.rice.account.balance
-  const newGrain = isRiceValid(NEW_MOLDS, DEV_MOLDS, testGrain)
-  expect(newGrain.obsolete).toBeTruthy()
-});
-
+// test('isRiceValid marks test as obsolete', () => {
+//   const NEW_MOLDS: Molds = JSON.parse(JSON.stringify(DEV_MOLDS))
+//   delete NEW_MOLDS.rice.account.balance
+//   const newGrain = isRiceValid(NEW_MOLDS, DEV_MOLDS, testGrain)
+//   expect(newGrain.obsolete).toBeTruthy()
+// });

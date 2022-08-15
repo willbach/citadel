@@ -31,6 +31,11 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
     background: grain.obsolete ? 'rgba(0,0,0,0.05)' : 'white',
   }
 
+  const grainData = useMemo(() => Object.keys(grain.data).reduce((acc, key) => {
+    acc[key] = grain.data[key].value
+    return acc
+  }, {} as { [key: string]: string }), [grain])
+
   const grainContent = (
     <Row style={{ ...grainStyle, position: 'relative' }}>
       <Col>
@@ -52,7 +57,7 @@ export const GrainValueDisplay = ({ grain, grainIndex, editGrain }: GrainValueDi
       </Col>
       {expanded && <Col>
         <div>Data:</div>
-        <Values values={grain.data} />
+        <Values values={grainData} />
       </Col>}
       <Row style={{ position: 'absolute', top: 4, right: 4, padding: 4 }}>
         {!grain.obsolete && (

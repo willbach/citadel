@@ -1,3 +1,5 @@
+import { FormValues } from "./FormValues"
+
 export type TestRiceValue = string | TestRiceValue[] | { [key: string]: string | TestRiceValue }
 
 export interface TestRice {
@@ -16,8 +18,8 @@ export interface TestGrain {
   holder: string
   'town-id': string
   label: string
-  salt: string
-  data: TestRice
+  salt: number
+  data: FormValues
 
   // UI-specific fields
   type?: string
