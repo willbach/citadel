@@ -87,12 +87,12 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
             iconOnly
             icon={expandInput ? <FaChevronUp size={16} /> : <FaChevronDown size={16} />}
           />
-          Action: %{test.input.action}
+          Action: {test.input.value.split(' ')[0].slice(1)}
         </Row>
         {expandInput && (
           <Col style={{ width: '100%', marginBottom: 6 }}>
             {/* display the formValues */}
-            {Object.keys(test.input.formValues).map(key => {
+            {/* {Object.keys(test.input.formValues).map(key => {
               const value = test.input.formValues[key].value
 
               return (
@@ -101,7 +101,8 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
                   <div>{value.length > 11 ? truncateString(value) : value}</div>
                 </Row>
               )
-            })}
+            })} */}
+            {test.input.value}
           </Col>
         )}
       </Col>

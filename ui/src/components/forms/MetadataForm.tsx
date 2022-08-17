@@ -27,10 +27,19 @@ export const MetadataForm = ({ metadata, setMetadata, onSubmit }: MetadataFormPr
       />
       <Input
         style={{ width: 300, marginTop: 8 }}
-        onChange={(e) => setMetadata({ ...metadata, symbol: e.target.value })}
+        onChange={(e) => setMetadata({ ...metadata, symbol: e.target.value.toUpperCase() })}
         value={metadata.symbol}
         placeholder="symbol (3-4 characters)"
+        maxLength={4}
         required
+      />
+      <Input
+        style={{ width: 300, marginTop: 8 }}
+        onChange={(e) => setMetadata({ ...metadata, salt: e.target.value.replace(/[^0-9]/gi, '') })}
+        value={metadata.salt}
+        placeholder="salt (integer, at least 10 digits)"
+        required
+        minLength={10}
       />
       <Input
         style={{ width: 300, marginTop: 8 }}

@@ -15,7 +15,7 @@ import LoadingOverlay from '../components/popups/LoadingOverlay';
 import './NewProjectView.scss'
 
 type CreationStep = 'title' | 'project' | 'token' |  'template' | 'metadata'
-export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper' | 'title' | 'metadata'
+export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'blank' | 'issue' | 'wrapper' | 'title' | 'metadata'
 
 const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   const { projects, createProject, setRoute } = useContractStore()
@@ -24,6 +24,14 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   const [options, setOptions] = useState<{ [key: string]: CreationOption | string | undefined }>({ title: '' })
   const [metadata, setMetadata] = useState<RawMetadata>(BLANK_METADATA)
   const [loading, setLoading] = useState(false)
+
+  const submitNewProject = useCallback(async (options: { [key: string]: string | undefined }, metadata?) => {
+    setLoading(true)
+    await createProject(options as { [key: string]: string }, metadata)
+    setLoading(false)
+    setOptions({})
+    setMetadata(BLANK_METADATA)
+  }, [createProject])
 
   const onSelect = useCallback((option: CreationOption) => async () => {
     switch (step) {
@@ -39,27 +47,29 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         setStep('token')
         break
       case 'token':
-        setOptions({ ...options, token: option })
-        setStep('template')
+        if (option === 'blank') {
+          submitNewProject({ ...options, token: option })
+          setRoute({ route: 'contract', subRoute: 'main' })
+        } else {
+          setOptions({ ...options, token: option })
+          setStep('template')
+        }
         break
       case 'template':
         if (option === 'issue') {
           setOptions({ ...options, template: option })
           setStep('metadata')
         } else {
-          createProject({ ...options, template: option })
+          submitNewProject({ ...options, template: option })
           setRoute({ route: 'contract', subRoute: 'main' })
         }
         break
       default:
-        setLoading(true)
-        await createProject(options as { [key: string]: string }, metadata)
-        setLoading(false)
+        submitNewProject(options, metadata)
         setRoute({ route: 'contract', subRoute: 'main' })
         break
     }
-    setOptions({ ...options,  })
-  }, [step, setStep, options, setOptions, projects, createProject, metadata, setRoute])
+  }, [step, setStep, options, setOptions, projects, submitNewProject, metadata, setRoute])
 
   const onBack = useCallback(() => {
     switch (step) {
@@ -137,14 +147,17 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         <>
           <Row style={{ width: '100%', position: 'relative', justifyContent: 'center' }}>
             {backButton}
-            <h3>Select Token Type:</h3>
+            <h3>Select Contract Type:</h3>
           </Row>
           <Row style={{ flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', marginTop: 12 }}>
-            <Button style={buttonStyle} onClick={onSelect('fungible')}>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('fungible')}>
               Fungible Token
             </Button>
-            <Button style={buttonStyle} onClick={onSelect('nft')}>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('nft')}>
               Non-Fungible Token (NFT)
+            </Button>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('blank')}>
+              Blank Contract
             </Button>
           </Row>
         </>

@@ -9,7 +9,7 @@ import useContractStore from '../../store/contractStore';
 import Modal from '../popups/Modal';
 import Button from '../form/Button';
 import Input from '../form/Input';
-import { copyFormValues, generateFormValues, grainFromForm, GRAIN_FORM_VALUES_COMMON, testFromForm, updateField, validateFormValues } from '../../utils/form';
+import { copyFormValues, generateFormValues, grainFromForm, testFromForm, GRAIN_FORM_VALUES_COMMON, updateField, validateFormValues } from '../../utils/form';
 import { Select } from '../form/Select';
 import { DROPPABLE_DIVIDER, TestList } from './TestList';
 import { GrainList } from './GrainList';
@@ -22,6 +22,7 @@ import { TestModal } from './TestModal';
 
 import './Tests.scss'
 import { FormValues } from '../../types/FormValues';
+import Text from '../text/Text';
 
 const WEBTERM_PATH = '/apps/webterm'
 const GRAIN_FORM_COMMON_LENGTH = Object.keys(GRAIN_FORM_VALUES_COMMON).length
@@ -61,16 +62,16 @@ export const TestView = () => {
     }
   }, [selectRice, setShowGrainModal])
 
-  const selectAction = useCallback((action, test?: Test, copy?: boolean) => {
+  const selectAction = useCallback((action: string, test?: Test, copy?: boolean) => {
     if (test)
-      setTestFormValues(copyFormValues(test.input.formValues))
+      setTestFormValues(copyFormValues({ testString: test.input }))
     if (!copy)
       setEdit(test)
     setActionType(action)
   }, [setTestFormValues])
 
   const editTest = useCallback((test: Test, copyFormat?: boolean) => {
-    selectAction(test.input.action, test, copyFormat)
+    selectAction(test.input.value, test, copyFormat)
     setShowTestModal(true)
   }, [selectAction, setShowTestModal])
 
@@ -107,7 +108,6 @@ export const TestView = () => {
     }
 
     if (isUpdate && edit) {
-      console.log('edit')
       const oldTest = edit as any
       const newTest = testFromForm(testFormValues, actionType, oldTest.id)
       // newTest.input.cart = oldTest.input.cart
@@ -118,7 +118,6 @@ export const TestView = () => {
       // })
       updateTest(newTest)
     } else {
-      console.log('new')
       addTest(testFromForm(testFormValues, actionType, genRanHex(20)))
     }
     setActionType('')
@@ -265,22 +264,25 @@ export const TestView = () => {
                 )}
               </Row>
             ))}
-            <Row style={{ marginTop: 12, borderTop: '1px solid black', paddingTop: 12 }}>
-              <Input
-                onChange={(e) => setNewGrainField(e.target.value)}
-                value={newGrainField}
-                placeholder={grainFieldPlaceHolder}
-                containerStyle={{ width: 'calc(100% - 176px)' }}
-              />
-              <Select onChange={(e) => setNewGrainFieldType(e.target.value)}
-                value={newGrainFieldType}
-                style={{ marginLeft: 8, width: 60, padding: '6px' }}>
-                {UQBAR_TYPES.map(t => (
-                  <option key={t}>{t}</option>
-                ))}
-              </Select>
-              <Button onClick={addGrainField} style={{ marginLeft: 8, padding: '4px 8px', width: 100, justifyContent: 'center' }} variant="dark">Add Field</Button>
-            </Row>
+            <Col style={{ marginTop: 12, borderTop: '1px solid black', paddingTop: 12 }}>
+              <Text>Custom fields should match the grain type in 'types', order matters!</Text>
+              <Row style={{ marginTop: 12 }}>
+                <Input
+                  onChange={(e) => setNewGrainField(e.target.value)}
+                  value={newGrainField}
+                  placeholder={grainFieldPlaceHolder}
+                  containerStyle={{ width: 'calc(100% - 176px)' }}
+                />
+                <Select onChange={(e) => setNewGrainFieldType(e.target.value)}
+                  value={newGrainFieldType}
+                  style={{ marginLeft: 8, width: 60, padding: '6px' }}>
+                  {UQBAR_TYPES.map(t => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </Select>
+                <Button onClick={addGrainField} style={{ marginLeft: 8, padding: '4px 8px', width: 100, justifyContent: 'center' }} variant="dark">Add Field</Button>
+              </Row>
+            </Col>
             <Button onClick={submitGrain(isEdit)} style={{ alignSelf: 'center', marginTop: 16 }}>{isEdit ? 'Update' : 'Add'} Grain</Button>
           </Col>
         </Modal>

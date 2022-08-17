@@ -82,8 +82,13 @@ export const copyFormValues = (values: FormValues) => Object.keys(values).reduce
 
 export const testFromForm = (testFormValues: FormValues, actionType: string, id: string): Test => ({
   id,
-  input: { action: actionType, formValues: copyFormValues(testFormValues) }
+  input: testFormValues.testString
 })
+
+// export const testFromForm = (testFormValues: FormValues, actionType: string, id: string): Test => ({
+//   id,
+//   input: { action: actionType, formValues: copyFormValues(testFormValues) }
+// })
 
 export const grainFromForm = (testGrainValues: FormValues, grainType: string) => ({
   id: formatType(testGrainValues.id.type, testGrainValues.id.value),

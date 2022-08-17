@@ -22,7 +22,6 @@ export interface TestGrain {
   data: FormValues
 
   // UI-specific fields
-  type?: string
   obsolete?: boolean
   riceInvalid?: boolean
 }

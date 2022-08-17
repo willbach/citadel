@@ -14,6 +14,7 @@ const parseTestData = (title: string, rawTestData: { [key: string]: string }[]) 
 }
 
 export const parseRawProject = (rawProject: any, projects: Project[], rawTestData: { [key: string]: string }[]): Project => {
+  console.log(rawProject)
   const title = Object.keys(rawProject)[0]
   const files = rawProject[title]
   

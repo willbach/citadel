@@ -57,7 +57,16 @@ export const TestModal = ({
     <Modal show={showTestModal} hide={hideTestModal}>
       <Col style={{ minWidth: 320, maxHeight: 'calc(100vh - 80px)', overflow: 'scroll' }}>
         <h3 style={{ marginTop: 0 }}>Add New Test</h3>
-        <Select onChange={(e) => selectAction(e.target.value)} value={actionType} disabled={isEdit}>
+
+        <Input
+          label="Test (in Hoon)"
+          onChange={(e) => updateTestFormValue('testString', e.target.value)}
+          placeholder="Your test here"
+          value={testFormValues.testString?.value}
+          required
+        />
+
+        {/* <Select onChange={(e) => selectAction(e.target.value)} value={actionType} disabled={isEdit}>
           <option>Select an Action Type</option>
           {Object.keys(molds.actions).map(key => (
             <option key={key} value={key}>{key}</option>
@@ -91,7 +100,8 @@ export const TestModal = ({
             ))}
           </Select>
           <Button onClick={addTestField} style={{ marginLeft: 8, padding: '4px 8px', width: 100, justifyContent: 'center' }} variant="dark">Add Field</Button>
-        </Row>
+        </Row> */}
+        
         <Button onClick={submitTest(isEdit)} style={{ alignSelf: 'center', marginTop: 16 }}>{isEdit ? 'Update' : 'Add'} Test</Button>
       </Col>
     </Modal>

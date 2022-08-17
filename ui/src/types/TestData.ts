@@ -1,17 +1,18 @@
-// import { TestAction } from "./TestAction"
-import { FormValues } from "./FormValues"
+// import { FormValues } from "./FormValues"
+import { FormField } from "./FormValues"
 import { TestGrain } from "./TestGrain"
 
 export interface Test {
   id: string
   focus?: boolean
   exclude?: boolean
-  input: {
-    action: string
-    formValues: FormValues
-    obsolete?: boolean
-    actionInvalid?: boolean
-  }
+  input: FormField
+  // input: {
+  //   action: string
+  //   formValues: FormValues
+  //   obsolete?: boolean
+  //   actionInvalid?: boolean
+  // }
   output?: {
     [key: string]: any
   } | undefined
