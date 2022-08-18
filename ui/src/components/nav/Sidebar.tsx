@@ -60,7 +60,7 @@ export const Sidebar = () => {
 
   return (
     <Col style={{ height: '100%', width: 'calc(100% - 1px)', maxWidth: 239, minWidth: 209, borderRight: '1px solid black' }}>
-      <Col style={{ width: '100%', height: '60%', overflow: 'scroll' }}>
+      <Col style={{ width: '100%', height: '70%', overflow: 'scroll' }}>
         <Text style={{ fontSize: 16, fontWeight: 600, padding: '16px 24px' }}>PROJECT EXPLORER</Text>
         <Row style={{ padding: '8px 12px' }}>
           <div style={{ fontSize: 14, padding: 2, marginRight: 6 }}>Projects</div>
@@ -92,9 +92,9 @@ export const Sidebar = () => {
           </Col>
         )}
       </Col>
-      <Col style={{ width: '100%', height: 'calc(40% - 1px)', borderTop: '1px solid black', overflow: 'scroll' }}>
+      <Col style={{ width: '100%', height: 'calc(30% - 1px)', borderTop: '1px solid black', overflow: 'scroll' }}>
         <Row style={{ padding: '8px 12px' }}>
-          <div style={{ fontSize: 14, padding: 2, marginRight: 0 }}>Apps</div>
+          <div style={{ fontSize: 14, padding: 2, marginRight: 0 }}>Tools</div>
           <Button style={buttonStyle} variant="unstyled" onClick={() => setShowAppModal(true)} iconOnly icon={<FaRegPlusSquare />} />
         </Row>
         <Col>

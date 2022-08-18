@@ -14,7 +14,6 @@ const parseTestData = (title: string, rawTestData: { [key: string]: string }[]) 
 }
 
 export const parseRawProject = (rawProject: any, projects: Project[], rawTestData: { [key: string]: string }[]): Project => {
-  console.log(rawProject)
   const title = Object.keys(rawProject)[0]
   const files = rawProject[title]
   
@@ -45,3 +44,19 @@ export const parseRawGrains = (rawGrains: any[]): TestGrain[] => {
       }
     })
 }
+
+// export const generateGrainValues = (grain: TestGrain) => ({
+//   ...grain,
+//   data: `[${Object.values(grain.data)
+//     .map(({ type, value }) => {
+//       if (!value) {
+//         return '~'
+//       } else if (type === '@t') {
+//         return `"${value}"`
+//       }
+
+//       return value
+//     })
+//     .concat(grain.label === 'token-metadata' ? [grain.salt.toString()] : [])
+//     .join(' ')}]`
+// })

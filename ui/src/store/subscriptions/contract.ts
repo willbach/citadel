@@ -4,6 +4,14 @@ import { isRiceValid } from "../../utils/mold";
 import { sortGrain, sortTest } from "../../utils/sort";
 import { ContractStore } from "../contractStore";
 
+export const handleTestResult = (get: GetState<ContractStore>, set: SetState<ContractStore>) => (testResult: any) => {
+  console.log('TEST RESULT:', JSON.stringify(testResult))
+  const { projects, currentProject } = get()
+  const [id, project, status] = testResult.flat(Infinity)
+
+  set({ testOutput: get().testOutput.map((to) => to.id === id ? { project, id, status } : to) })
+}
+
 export const handleMoldsUpdate = (get: GetState<ContractStore>, set: SetState<ContractStore>) => (newMolds: Molds) => {
   // console.log('MOLD SUBSCRIPTION:', JSON.stringify(newMolds))
   const { projects, currentProject } = get()

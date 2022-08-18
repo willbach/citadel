@@ -19,10 +19,10 @@ import { EMPTY_PROJECT } from '../../types/Project';
 import { genRanHex } from '../../utils/number';
 import { UqbarType, UQBAR_TYPES } from '../../types/UqbarType';
 import { TestModal } from './TestModal';
+import { FormValues } from '../../types/FormValues';
 
 import './Tests.scss'
-import { FormValues } from '../../types/FormValues';
-import Text from '../text/Text';
+import { addHexDots } from '../../utils/format';
 
 const WEBTERM_PATH = '/apps/webterm'
 const GRAIN_FORM_COMMON_LENGTH = Object.keys(GRAIN_FORM_VALUES_COMMON).length
@@ -30,7 +30,7 @@ const GRAIN_FORM_COMMON_LENGTH = Object.keys(GRAIN_FORM_VALUES_COMMON).length
 export interface TestViewProps {}
 
 export const TestView = () => {
-  const { projects, currentProject, addTest, updateTest, addGrain, updateGrain, setGrains, runTests } = useContractStore()
+  const { projects, currentProject, setLoading, addTest, updateTest, addGrain, updateGrain, setGrains, runTests } = useContractStore()
 
   const project = useMemo(() => projects.find(p => p.title === currentProject), [currentProject, projects])
   const { testData, molds } = useMemo(() => project || EMPTY_PROJECT, [project])
@@ -38,7 +38,7 @@ export const TestView = () => {
   const [showTestModal, setShowTestModal] = useState(false)
   const [showGrainModal, setShowGrainModal] = useState(false)
   const [grainFormValues, setGrainFormValues] = useState<FormValues>({})
-  const [testFormValues, setTestFormValues] = useState<FormValues>({})
+  const [testFormValues, setTestFormValues] = useState<FormValues>({ testString: { type: 'none', value: '' } })
   const [grainType, setGrainType] = useState('')
   const [actionType, setActionType] = useState('')
   const [newGrainField, setNewGrainField] = useState('')
@@ -100,7 +100,8 @@ export const TestView = () => {
     setGrainFormValues(newValues)
   }, [grainFormValues, setGrainFormValues])
 
-  const submitTest = useCallback((isUpdate = false) => () => {
+  const submitTest = useCallback((isUpdate = false) => async () => {
+    setLoading('Saving test...')
     const validationError = validateFormValues(testFormValues)
 
     if (validationError) {
@@ -116,17 +117,19 @@ export const TestView = () => {
       //     newTest.input.action[key] = oldTest.input.action[key]
       //   }
       // })
-      updateTest(newTest)
+      await updateTest(newTest)
     } else {
-      addTest(testFromForm(testFormValues, actionType, genRanHex(20)))
+      await addTest(testFromForm(testFormValues, actionType, addHexDots(genRanHex(20))))
     }
     setActionType('')
     setShowTestModal(false)
     setTestFormValues({})
     setEdit(undefined)
-  }, [testFormValues, edit, actionType, addTest, updateTest])
+    setLoading(undefined)
+  }, [testFormValues, edit, actionType, addTest, updateTest, setLoading])
 
-  const submitGrain = useCallback((isUpdate = false) => () => {
+  const submitGrain = useCallback((isUpdate = false) => async () => {
+    setLoading('Saving grain...')
     const validationError = validateFormValues(grainFormValues)
 
     if (validationError) {
@@ -136,7 +139,7 @@ export const TestView = () => {
     const newGrain = grainFromForm(grainFormValues, grainType)
 
     if (isUpdate) {
-      updateGrain(newGrain)
+      await updateGrain(newGrain)
     } else {
       const targetProject = projects.find(({ title }) => title === currentProject)
       if (targetProject) {
@@ -145,13 +148,14 @@ export const TestView = () => {
         }
       }
 
-      addGrain(newGrain)
+      await addGrain(newGrain)
     }
     setGrainType('')
     setShowGrainModal(false)
     setGrainFormValues({})
     setEdit(undefined)
-  }, [currentProject, projects, grainType, grainFormValues, addGrain, updateGrain])
+    setLoading(undefined)
+  }, [currentProject, projects, grainType, grainFormValues, addGrain, updateGrain, setLoading])
 
   const handleDragAndDropGrain = useCallback(({ source, destination }) => {
     if (!destination)
@@ -242,13 +246,13 @@ export const TestView = () => {
 
         <Modal show={showGrainModal} hide={hideGrainModal}>
           <Col style={{ minWidth: 320, maxHeight: 'calc(100vh - 80px)', overflow: 'scroll' }}>
-            <h3 style={{ marginTop: 0 }}>Add New Grain</h3>
-            <Select onChange={(e) => selectRice(e.target.value)} value={grainType} disabled={isEdit}>
+            <h3 style={{ marginTop: 0 }}>{isEdit ? 'Update' : 'Add New'} Grain</h3>
+            {/* <Select onChange={(e) => selectRice(e.target.value)} value={grainType} disabled={isEdit}>
               <option>Select a Grain Type</option>
               {Object.keys(molds.rice).map(key => (
                 <option key={key} value={key}>{key}</option>
               ))}
-            </Select>
+            </Select> */}
             {Object.keys(grainFormValues).map((key, index) => (
               <Row key={key}>
                 <Input
@@ -264,8 +268,10 @@ export const TestView = () => {
                 )}
               </Row>
             ))}
-            <Col style={{ marginTop: 12, borderTop: '1px solid black', paddingTop: 12 }}>
+
+            {/* <Col style={{ marginTop: 12, borderTop: '1px solid black', paddingTop: 12 }}>
               <Text>Custom fields should match the grain type in 'types', order matters!</Text>
+              <Text>For more complex types (map, list, unit) use 'none'</Text>
               <Row style={{ marginTop: 12 }}>
                 <Input
                   onChange={(e) => setNewGrainField(e.target.value)}
@@ -282,7 +288,8 @@ export const TestView = () => {
                 </Select>
                 <Button onClick={addGrainField} style={{ marginLeft: 8, padding: '4px 8px', width: 100, justifyContent: 'center' }} variant="dark">Add Field</Button>
               </Row>
-            </Col>
+            </Col> */}
+
             <Button onClick={submitGrain(isEdit)} style={{ alignSelf: 'center', marginTop: 16 }}>{isEdit ? 'Update' : 'Add'} Grain</Button>
           </Col>
         </Modal>

@@ -1,6 +1,6 @@
 import { HoonType } from "./HoonType";
 
-export type UqbarType = HoonType | '%id' | '%grain'
+export type UqbarType = HoonType | '%id' | 'none'
 
 export const UQBAR_TYPES = [
   '%id',

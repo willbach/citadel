@@ -1,6 +1,7 @@
 // TODO: make this a function that takes the token name and symbol as params
-export const initialMain =
+export const initialMain = (name = '', symbol = '') =>
 `::  fungible.hoon [UQ| DAO]
+::  ${name} - ${symbol}
 ::
 ::  Fungible token implementation. Any new token that wishes to use this
 ::  format can be issued through this contract. The contract uses an account
@@ -26,7 +27,6 @@ export const initialMain =
 ::  work in the wallet agent should implement the same structure for their
 ::  rice.
 ::
-::  /+  *zig-sys-smart
 /=  fungible  /lib/types
 =,  fungible
 |_  =cart
@@ -103,7 +103,6 @@ export const initialMain =
       (ecdsa-raw-recover:secp256k1:secp:crypto signed-hash sig.act)
     ::  assert the signature is valid
     ?>  =(recovered-address holder.p.giv)
-    :: TODO need to figure out how to implement the deadline since now.cart no longer exists
     ?>  (lte batch.cart deadline.act)
     ?>  (gte balance.giver amount.act)
     ?~  account.act

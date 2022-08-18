@@ -1,15 +1,8 @@
 // TODO: make this a function that takes the token name and symbol as params
-export const initialTypes =
-`::  UQ| token standard v0.1
-::  last updated: 2022/07/14
+export const initialTypes = (name = '', symbol = '') =>
+`:: ${name} - ${symbol}
 ::
-::  /+  *zig-sys-smart
 |%
-::  TODO would be nice to make cap a @ud instead,
-::  and make mintable a read query
-::
-::  TODO should be consistent with abbreviating
-::  token-metadata as either token or metadata
 ++  sur
   |%
   ::
@@ -93,7 +86,6 @@ export const initialTypes =
     ==  ==
   --
 ::
-::  TODO extract out account creation code to arm here
 ++  lib
   |%
   ++  mintable

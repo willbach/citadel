@@ -6,9 +6,10 @@ import Col from './components/spacing/Col';
 import Row from './components/spacing/Row';
 import { Sidebar } from './components/nav/Sidebar';
 import MainView from './views/MainView';
+import LoadingOverlay from './components/popups/LoadingOverlay';
 
 function App() {
-  const { init } = useContractStore()
+  const { loading, init } = useContractStore()
 
   useEffect(() => {
     init()
@@ -42,6 +43,7 @@ function App() {
         </Row>
       </Col>
       </BrowserRouter>
+      <LoadingOverlay loading={loading !== undefined} text={loading} />
     </Container>
   );
 }

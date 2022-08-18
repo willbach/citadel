@@ -1,8 +1,7 @@
 import { TestData } from "../../types/TestData";
 import { TestGrain } from "../../types/TestGrain";
-import { UqbarType } from "../../types/UqbarType";
-
-export const BLANK_METADATA = { name: '', symbol: '', decimals: '', supply: '', cap: '', mintable: '', minters: '', deployer: '', salt: '' }
+import { addHexDots } from "../../utils/format";
+import { genRanHex, genRanNum, numToUd } from "../../utils/number";
 
 export interface RawMetadata {
   name: string
@@ -16,6 +15,18 @@ export interface RawMetadata {
   salt: string
 }
 
+export const BLANK_METADATA = { name: '', symbol: '', salt: '', decimals: '', supply: '', cap: '', mintable: '', minters: '', deployer: '' }
+
+export const generateInitialMetadata = (minters: string, deployer: string) => ({
+  ...BLANK_METADATA,
+  salt: genRanNum(10),
+  decimals: '18',
+  supply: '1000000',
+  mintable: 't',
+  minters,
+  deployer,
+})
+
 export const DEFAULT_TOWN_ID = '0x0'
 
 export const genFungibleMetadata = (id: string, { name, symbol, decimals, supply, cap, mintable, minters, deployer, salt }: RawMetadata) : TestGrain => {
@@ -25,25 +36,27 @@ export const genFungibleMetadata = (id: string, { name, symbol, decimals, supply
     holder: id, // should be the same as the lord
     'town-id': DEFAULT_TOWN_ID,
     label: "token-metadata",
-    salt: parseInt(id, 16),
-    data: {
-      name: { type: '@t', value: name },
-      symbol: { type: '@t', value: symbol },
-      decimals: { type: '@ud', value: decimals },
-      supply: { type: '@ud', value: supply },
-      cap: { type: '@ud', value: cap },
-      mintable: { type: '?', value: mintable ? 'true' : 'false' },
-      minters: { type: '@t', value: minters.split(',').map(m => m.trim()).join(',') },
-      deployer: { type: '@ux', value: deployer },
-    }
+    salt: Number(salt),
+    data: `["${name}" "${symbol}" ${numToUd(decimals)} ${numToUd(supply)} ${!cap || cap === '~' ? '~' : numToUd(cap)} ${mintable === 't' ? '&' : '|'} ${minters || '~'} ${deployer} ${numToUd(salt)}]`
+    // data: {
+    //   name: { type: '@t', value: name },
+    //   symbol: { type: '@t', value: symbol },
+    //   decimals: { type: '@ud', value: decimals },
+    //   supply: { type: '@ud', value: supply },
+    //   cap: { type: 'none', value: cap },
+    //   mintable: { type: '?', value: mintable ? '&' : '|' },
+    //   minters: { type: 'none', value: minters.split(',').map(m => m.trim()).join(',') },
+    //   deployer: { type: '@ux', value: deployer },
+    //   salt: { type: '@', value: salt }
+    // }
   }
 }
 
 export const fungibleTokenTestData : TestData = {
   tests: [
     {
-      id: '83754647655676576576',
-      input: { type: '@t', value: '[%give 0xbeef 30 0x1.dead ~]' }
+      id: addHexDots(genRanHex(20)),
+      input: { type: 'none', value: '[%give 0xdead 1 0x1.fade `0x1.dead]' }
       // input: {
       //   action: 'give',
       //   formValues: {
@@ -65,28 +78,17 @@ export const fungibleTokenTestData : TestData = {
       //     },
       //   }
       // }
-    }
+    },
+    {
+      id: addHexDots(genRanHex(20)),
+      input: { type: 'none', value: '[%give 0xbeef 10 0x1.dead `0x1.fade]' }
+    },
+    {
+      id: addHexDots(genRanHex(20)),
+      input: { type: 'none', value: '[%give 0xcafe 10 0x1.fade `0x1.cafe]' }
+    },
   ],
   grains: [
-
-    // {
-    //   id: "0x7367697a",
-    //   lord: "0x7367697a",
-    //   holder: "0x7367697a",
-    //   'town-id': "0x0",
-    //   label: "token-metadata",
-    //   salt: 1936157050,
-    //   data: {
-    //     name: { type: '@t', value: "Zigs: UQ| Tokens" },
-    //     symbol: { type: '@t', value: "ZIG" },
-    //     decimals: { type: '@ud', value: "18" },
-    //     supply: { type: '@ud', value: "1000000" },
-    //     cap: { type: '@ud', value: "" },
-    //     mintable: { type: '?', value: "false" },
-    //     minters: { type: '@t', value: "[0xbeef]" },
-    //     deployer: { type: '@ux', value: "0x0" },
-    //   }
-    // },
     {
       id: "0x1.fade",
       lord: "0x7367697a",
@@ -94,12 +96,13 @@ export const fungibleTokenTestData : TestData = {
       'town-id': "0x0",
       label: "account",
       salt: 1936157050,
-      data: {
-        balance: { type: '@ud' as UqbarType, value:  "50" },
-        allowances: { type: '@t' as UqbarType, value: "~" },
-        'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
-        nonce: { type: '@ud', value: '0' }
-      }
+      data: '[50 ~ *metadata-id* 0]'
+      // data: {
+      //   balance: { type: '@ud' as UqbarType, value:  "50" },
+      //   allowances: { type: 'none' as UqbarType, value: "~" },
+      //   'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
+      //   nonce: { type: '@ud', value: '0' }
+      // }
     },
     {
       id: "0x1.dead",
@@ -108,12 +111,13 @@ export const fungibleTokenTestData : TestData = {
       'town-id': "0x0",
       label: "account",
       salt: 1936157050,
-      data: {
-        balance: { type: '@ud' as UqbarType, value:  "30" },
-        allowances: { type: '@t' as UqbarType, value: "~" },
-        'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
-        nonce: { type: '@ud', value: '0' }
-      }
+      data: '[30 ~ *metadata-id* 0]'
+      // data: {
+      //   balance: { type: '@ud' as UqbarType, value:  "30" },
+      //   allowances: { type: 'none' as UqbarType, value: "~" },
+      //   'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
+      //   nonce: { type: '@ud', value: '0' }
+      // }
     },
     {
       id: "0x1.cafe",
@@ -122,12 +126,13 @@ export const fungibleTokenTestData : TestData = {
       'town-id': "0x0",
       label: "account",
       salt: 1936157050,
-      data: {
-        balance: { type: '@ud' as UqbarType, value:  "20" },
-        allowances: { type: '@t' as UqbarType, value: "~" },
-        'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
-        nonce: { type: '@ud', value: '0' }
-      }
+      data: '[20 ~ *metadata-id* 0]'
+      // data: {
+      //   balance: { type: '@ud' as UqbarType, value:  "20" },
+      //   allowances: { type: 'none' as UqbarType, value: "~" },
+      //   'metadata-id': { type: '%id' as UqbarType, value: "0x7367697a" },
+      //   nonce: { type: '@ud', value: '0' }
+      // }
     },
     {
       id: "0x1.face",
@@ -136,12 +141,13 @@ export const fungibleTokenTestData : TestData = {
       'town-id': "0x0",
       label: "account",
       salt: 1717987684,
-      data: {
-        balance: { type: '@ud' as UqbarType, value:  "20" },
-        allowances: { type: '@t' as UqbarType, value: "~" },
-        'metadata-id': { type: '%id' as UqbarType, value: "0x2174.6e65.7265.6666.6964" },
-        nonce: { type: '@ud', value: '0' }
-      }
+      data: '[20 ~ *metadata-id* 0]'
+      // data: {
+      //   balance: { type: '@ud' as UqbarType, value:  "20" },
+      //   allowances: { type: 'none' as UqbarType, value: "~" },
+      //   'metadata-id': { type: '%id' as UqbarType, value: "0x2174.6e65.7265.6666.6964" },
+      //   nonce: { type: '@ud', value: '0' }
+      // }
     }
   ]
 }
@@ -155,8 +161,8 @@ export const genFungibleTokenTestData = (metadataGrain: TestGrain, contractId: s
       .map(g => ({
         ...g,
         lord: contractId,
-        salt: Number(metadataGrain.data.salt?.value || metadataGrain.salt),
-        data: { ...g.data, 'metadata-id': { type: '%id', value: contractId } } 
+        salt: metadataGrain.salt,
+        data: g.data.replace('*metadata-id*', contractId)
       } as TestGrain))
   ]
 })

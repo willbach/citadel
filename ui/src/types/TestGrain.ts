@@ -19,7 +19,7 @@ export interface TestGrain {
   'town-id': string
   label: string
   salt: number
-  data: FormValues
+  data: string
 
   // UI-specific fields
   obsolete?: boolean

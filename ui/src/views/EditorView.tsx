@@ -1,9 +1,7 @@
 import React, { FormEvent, useCallback, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom';
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/theme/material.css'
 import 'codemirror/addon/display/placeholder'
-import Button, { ButtonVariant } from '../components/form/Button'
 import Form from '../components/form/Form'
 import Col from '../components/spacing/Col'
 import Row from '../components/spacing/Row'
@@ -45,9 +43,9 @@ const EditorView = ({ hide = false }: { hide?: boolean }) => {
   const submit = useCallback(async (e: FormEvent) => {
     e.preventDefault()
 
-    setLoading(true)
+    setLoading('Running tests...')
     await runTests()
-    setLoading(false)
+    setLoading(undefined)
   }, [runTests, setLoading])
   
   const setText = useCallback((editor: SelectedEditor) => (inputText: string) => {

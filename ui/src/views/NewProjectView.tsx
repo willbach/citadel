@@ -8,7 +8,7 @@ import Col from '../components/spacing/Col'
 import Row from '../components/spacing/Row'
 import useContractStore from '../store/contractStore';
 import Input from '../components/form/Input';
-import { BLANK_METADATA, RawMetadata } from '../code-text/test-data/fungible';
+import { BLANK_METADATA, generateInitialMetadata, RawMetadata } from '../code-text/test-data/fungible';
 import { MetadataForm } from '../components/forms/MetadataForm';
 import LoadingOverlay from '../components/popups/LoadingOverlay';
 
@@ -22,7 +22,8 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   
   const [step, setStep] = useState<CreationStep>('title')
   const [options, setOptions] = useState<{ [key: string]: CreationOption | string | undefined }>({ title: '' })
-  const [metadata, setMetadata] = useState<RawMetadata>(BLANK_METADATA)
+  // TODO: get default minter from the wallet and then figure out the default deployer
+  const [metadata, setMetadata] = useState<RawMetadata>(generateInitialMetadata('[0xbeef]', '0x0'))
   const [loading, setLoading] = useState(false)
 
   const submitNewProject = useCallback(async (options: { [key: string]: string | undefined }, metadata?) => {
@@ -30,7 +31,8 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
     await createProject(options as { [key: string]: string }, metadata)
     setLoading(false)
     setOptions({})
-    setMetadata(BLANK_METADATA)
+    setMetadata(generateInitialMetadata('[0xbeef]', '0x0'))
+    setStep('title')
   }, [createProject])
 
   const onSelect = useCallback((option: CreationOption) => async () => {
@@ -193,7 +195,7 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   }
 
   return (
-    <Col style={{ position: 'absolute', visibility: hide ? 'hidden' : 'visible', width: '100%', maxWidth: 600, height: '80%', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', justifySelf: 'center' }}>
+    <Col style={{ position: 'absolute', visibility: hide ? 'hidden' : 'visible', width: '100%', maxWidth: 600, height: '100%', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', justifySelf: 'center' }}>
       {renderContent()}
       <LoadingOverlay loading={loading} />
     </Col>

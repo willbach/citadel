@@ -22,3 +22,9 @@ export interface TestData {
   tests: Test[]
   grains: TestGrain[]
 }
+
+export interface TestOutput {
+  project: string
+  id: string
+  status: number
+}

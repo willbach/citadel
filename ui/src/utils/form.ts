@@ -12,6 +12,7 @@ export const GRAIN_FORM_VALUES_COMMON: { [key: string]: any } = {
   'town-id': '%id',
   salt: '@',
   label: '@tas',
+  data: 'none',
 }
 
 export const TEST_FORM_VALUES_COMMON: { [key: string]: any } = {
@@ -19,7 +20,7 @@ export const TEST_FORM_VALUES_COMMON: { [key: string]: any } = {
   id: '%id',
   from: '(id, nonce)',
   'town-id': '%id',
-  'action-text': '@t',
+  'action-text': 'none',
 }
 
 export const formatField: { [key: string]: (val: string) => string } = {
@@ -63,13 +64,12 @@ interface GenerateFormParams {
 }
 
 export const generateFormValues = ({ type, name, data, copy = false, edit }: GenerateFormParams): FormValues => {
-  const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON, ...(edit && 'data' in edit ? edit.data : {}) } : { ...TEST_FORM_VALUES_COMMON, ...data }
+  const allFields = type === 'grain' ? { ...GRAIN_FORM_VALUES_COMMON } : { ...TEST_FORM_VALUES_COMMON, ...data }
   Object.keys(allFields).forEach((key) => {
-    if (edit && 'data' in edit && edit.data[key]) {
-      allFields[key] = edit.data[key]
-    } else {
+    // if (edit && 'data' in edit && edit.data[key]) {
+    //   allFields[key] = edit.data[key]
+    // } else {
       allFields[key] = { type: formatField[allFields[key]] ? allFields[key] : 'none', value: edit ? findValue(edit, key) : allFields[key].includes('%grain') ? [] : '' }
-    }
   })
   allFields.label.value = name
   return allFields
@@ -95,15 +95,15 @@ export const grainFromForm = (testGrainValues: FormValues, grainType: string) =>
   lord: formatType(testGrainValues.lord.type, testGrainValues.lord.value),
   holder: formatType(testGrainValues.holder.type, testGrainValues.holder.value),
   'town-id': formatType(testGrainValues['town-id'].type, testGrainValues['town-id'].value),
-  type: grainType,
   label: grainType,
   salt: typeof testGrainValues.salt.value === 'number' ? testGrainValues.salt.value : Number(removeDots(testGrainValues.salt.value)),
-  data: Object.keys(testGrainValues).reduce((acc, key) => {
-    if (!Object.keys(GRAIN_FORM_VALUES_COMMON).includes(key)) {
-      acc[key] = { type: testGrainValues[key].type, value: formatType(testGrainValues[key].type, testGrainValues[key].value) }
-    }
-    return acc
-  }, {} as FormValues),
+  data: testGrainValues.data.value,
+  // data: Object.keys(testGrainValues).reduce((acc, key) => {
+  //   if (!Object.keys(GRAIN_FORM_VALUES_COMMON).includes(key)) {
+  //     acc[key] = { type: testGrainValues[key].type, value: formatType(testGrainValues[key].type, testGrainValues[key].value) }
+  //   }
+  //   return acc
+  // }, {} as FormValues),
 })
 
 const TAS_REGEX = /^[a-z-]+$/i
@@ -142,7 +142,7 @@ export const validateWithType = (type: UqbarType, value: string) => {
     case '@tas': // @ux	Hexadecimal value	0x1f.3c4b
       return TAS_REGEX.test(value)
     case '?': // boolean
-      return value === 'true' || value === 'false'
+      return value === '&' || value === '%.n'
     case '%unit': // maybe
       return false
     case '%set': // set
@@ -169,7 +169,7 @@ export const validate = (type: TypeAnnotation) => (value?: string): boolean => {
         return validate(uType)(value)
       }
     } else if (!value) {
-      return false
+      return true
     } else if (modifier === '%set') {
       if (value === '[]') {
         return true
@@ -192,7 +192,8 @@ export const validateFormValues = (formValues: FormValues) =>
     const { value, type } = formValues[key]
     const isValid = Array.isArray(value) ||
       (typeof value === 'string' && validate(type)(removeDots(value))) ||
-      (typeof value === 'number' && validate(type)(String(value)))
+      (typeof value === 'number' && validate(type)(String(value))) ||
+      (type === 'none' && !value)
 
     return acc || (isValid ? '' : `Form Error: ${key} must be of type ${type}`)
   }, '')

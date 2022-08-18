@@ -19,74 +19,84 @@ export const MetadataForm = ({ metadata, setMetadata, onSubmit }: MetadataFormPr
       }}
     >
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
         value={metadata.name}
-        placeholder="name (longform)"
+        label="Name (longform)"
+        autoFocus
         required
       />
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, symbol: e.target.value.toUpperCase() })}
         value={metadata.symbol}
-        placeholder="symbol (3-4 characters)"
+        label="Symbol (3-4 characters)"
         maxLength={4}
         required
       />
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, salt: e.target.value.replace(/[^0-9]/gi, '') })}
         value={metadata.salt}
-        placeholder="salt (integer, at least 10 digits)"
+        label="Salt (integer, at least 10 digits)"
         required
         minLength={10}
       />
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, decimals: e.target.value.replace(/[^0-9]/gi, '') })}
         value={metadata.decimals}
-        placeholder="decimals (integer)"
+        label="Decimals (integer)"
         required
       />
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, supply: e.target.value.replace(/[^0-9]/gi, '') })}
         value={metadata.supply}
-        placeholder="supply (integer)"
+        label="Supply (integer)"
         required
       />
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, cap: e.target.value.replace(/[^0-9]/gi, '') })}
         value={metadata.cap}
-        placeholder="cap (optional, integer)"
+        label="Cap (optional, integer)"
       />
       <Input
-        label="mintable"
+        label="Mintable"
         type="checkbox"
         containerStyle={{ width: 300, marginTop: 8, flexDirection: 'row', alignSelf: 'flex-start' }}
         onChange={(e) => setMetadata({ ...metadata, mintable: metadata.mintable ? '' : 't' }) }
         value={metadata.mintable}
-        placeholder="mintable"
+        checked={Boolean(metadata.mintable)}
       />
-      <Input
-        style={{ width: 300, marginTop: 8 }}
+      {Boolean(metadata.mintable) && <Input
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, minters: e.target.value.replace(/[^0-9a-fA-Fx,]/gi, '') })}
         value={metadata.minters}
-        placeholder="minters (comma-separated addresses)"
-      />
+        label="Minters (comma-separated addresses)"
+      />}
       <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, deployer: e.target.value.replace(/[^0-9a-fA-Fx]/gi, '') })}
         value={metadata.deployer}
-        placeholder="deployer"
+        label="Deployer"
         required
       />
       {/* <Input
-        style={{ width: 300, marginTop: 8 }}
+        containerStyle={{ marginTop: 8 }}
+        style={{ width: 300 }}
         onChange={(e) => setMetadata({ ...metadata, salt: e.target.value.replace(/[^0-9a-fA-Fx]/gi, '') })}
         value={metadata.salt}
-        placeholder="salt"
+        label="salt"
         required
       /> */}
       <Button variant='dark' type="submit" style={{ margin: '16px 0px 8px', width: 240, justifyContent: 'center' }}>

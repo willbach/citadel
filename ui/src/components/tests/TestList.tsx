@@ -11,6 +11,8 @@ import { Molds } from '../../types/Molds';
 import { Values } from './ValuesDisplay';
 import Input from '../form/Input';
 import { truncateString } from '../../utils/format';
+import Loader from '../popups/Loader';
+import { getStatus } from '../../utils/constants';
 
 export const DROPPABLE_DIVIDER = '___'
 
@@ -22,7 +24,7 @@ interface TestEntryProps extends TestListProps {
 
 export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) => {
   // need to handle action recursively
-  const { removeTest, updateTest } = useContractStore()
+  const { currentProject, testOutput, removeTest, updateTest } = useContractStore()
   const [expandInput, setExpandInput] = useState(false)
   const [expandOutput, setExpandOutput] = useState(false)
 
@@ -41,6 +43,8 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
   const toggleTestExclude = useCallback(() => {
     updateTest({ ...test, exclude: !test.exclude })
   }, [test, updateTest])
+
+  const output = testOutput.find(({ id, project }) => id === test.id && project === currentProject)
 
   return (
     <Col className="action" style={{ ...testStyle, position: 'relative' }}>
@@ -78,7 +82,7 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
           />
         </Row>
       </Row>
-      <Col style={{ width: '100%', borderBottom: '1px solid gray', paddingTop: 6, paddingBottom: 6 }}>
+      <Col style={{ width: '100%', paddingTop: 6, paddingBottom: 4 }}>
         <Row style={{ marginBottom: 4 }}>
           <Button
             onClick={() => setExpandInput(!expandInput)}
@@ -106,7 +110,7 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
           </Col>
         )}
       </Col>
-      <Col className="output" style={{ flex: 1, marginTop: 4, paddingTop: 6 }}>
+      {output !== undefined && <Col className="output" style={{ flex: 1, marginTop: 4, paddingTop: 8, borderTop: '1px solid gray' }}>
         <Row style={{ marginBottom: 4 }}>
           {!!test.output && (<Button
             onClick={() => setExpandOutput(!expandOutput)}
@@ -115,14 +119,14 @@ export const TestEntry = ({ test, testIndex, editTest, molds }: TestEntryProps) 
             iconOnly
             icon={expandOutput ? <FaChevronUp size={16} /> : <FaChevronDown size={16} />}
           />)}
-          {test.output ? 'Expected' : ''} Output: {!test.output ? 'null' : ''}
+          {test.output ? 'Expected' : ''} Output: {output.status === -1 ? <Loader size='small' style={{ marginLeft: 8 }} dark /> : getStatus(output.status)}
         </Row>
         {expandOutput && (
           <Col>
             {JSON.stringify(test.output) || 'null'}
           </Col>
         )}
-      </Col>
+      </Col>}
     </Col>
   )
 }

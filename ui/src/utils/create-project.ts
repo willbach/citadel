@@ -2,7 +2,7 @@ import { initialMain as mainFungible } from "../code-text/contract/fungible/main
 import { initialTypes as typesFungible } from "../code-text/contract/fungible/types"
 import { initialMain as mainNft } from "../code-text/contract/nft/main"
 import { initialTypes as typesNft } from "../code-text/contract/nft/types"
-import { fungibleTokenTestData, genFungibleTokenTestData } from "../code-text/test-data/fungible"
+import { fungibleTokenTestData, genFungibleTokenTestData, RawMetadata } from "../code-text/test-data/fungible"
 import { DEV_MOLDS } from "../types/Molds"
 import { TestGrain } from "../types/TestGrain"
 
@@ -10,19 +10,19 @@ export const EMPTY_TEST_DATA = { tests: [], grains: [] }
 
       // type CreationStep = 'project' | 'token' |  'template'
       // export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'issue' | 'wrapper'
-export const getInitialContractText = (options: { [key: string]: string }) => {
+export const getInitialContractText = (options: { [key: string]: string }, rawMetadata?: RawMetadata) => {
   let contract_main = '' // when options.token === 'blank'
   if (options.token === 'nft') {
     contract_main = mainNft
   } else if (options.token === 'fungible') {
-    contract_main = mainFungible
+    contract_main = mainFungible(rawMetadata?.name, rawMetadata?.symbol)
   }
 
   let contract_types = '' // when options.token === 'blank'
   if (options.token === 'nft') {
     contract_types = typesNft
   } else if (options.token === 'fungible') {
-    contract_types = typesFungible
+    contract_types = typesFungible(rawMetadata?.name, rawMetadata?.symbol)
   }
 
   return {
