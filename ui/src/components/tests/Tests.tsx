@@ -235,7 +235,10 @@ export const TestView = () => {
           <Col style={{ height: isMobile ? 400 : '70%', width: '100%', borderLeft: '1px solid lightgray' }}>
             <Row className="section-header">
               <Row className="title">Test Granary</Row>
-              <Row className="action" onClick={() => setShowGrainModal(true)}>+ Add Grain</Row>
+              <Row>
+                <Row className="action" onClick={() => setShowGrainModal(true)}>Refresh</Row>
+                <Row className="action" onClick={() => setShowGrainModal(true)}>+ Add Grain</Row>
+              </Row>
             </Row>
             <GrainList editGrain={editGrain} />
           </Col>

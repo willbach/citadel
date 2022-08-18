@@ -55,7 +55,7 @@ const useContractStore = create<ContractStore>(persist<ContractStore>(
     loading: '',
     currentProject: '',
     projects: [],
-    openApps: ['webterm', 'cliff'],
+    openApps: ['webterm'],
     currentApp: '',
     route: { route: 'project', subRoute: 'new' },
     testOutput: [],

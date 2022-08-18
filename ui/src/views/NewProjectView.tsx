@@ -14,8 +14,8 @@ import LoadingOverlay from '../components/popups/LoadingOverlay';
 
 import './NewProjectView.scss'
 
-type CreationStep = 'title' | 'project' | 'token' |  'template' | 'metadata'
-export type CreationOption = 'contract' | 'gall' | 'fungible' | 'nft' | 'blank' | 'issue' | 'wrapper' | 'title' | 'metadata'
+type CreationStep = 'title' | 'project' | 'gall' | 'token' |  'template' | 'metadata'
+export type CreationOption = 'contract' | 'gall' | 'contract-gall' | 'fungible' | 'nft' | 'blank' | 'issue' | 'wrapper' | 'title' | 'metadata' | 'gall-app-template'
 
 const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
   const { projects, createProject, setRoute } = useContractStore()
@@ -42,21 +42,27 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
           window.alert('You already have a project with that name')
           break
         }
-        setStep('token')
+        setStep('project')
         break
       case 'project':
         setOptions({ ...options, project: option })
-        setStep('token')
+        // TODO: if the option is gall-only, then we need to figure out what to show in the next screen
+        setStep(option === 'contract' ? 'token' : 'gall')
         break
+      case 'gall':
+          setOptions({ ...options, project: option })
+          setStep('token')
+          break        
       case 'token':
         if (option === 'blank') {
           submitNewProject({ ...options, token: option })
           setRoute({ route: 'contract', subRoute: 'main' })
         } else {
           setOptions({ ...options, token: option })
-          setStep('template')
+          setStep('metadata')
         }
         break
+      // TODO: skipping this, we may not want it. Maybe replace with option to input interface(s)
       case 'template':
         if (option === 'issue') {
           setOptions({ ...options, template: option })
@@ -82,9 +88,13 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         setOptions({ ...options, title: '' })
         setStep('title')
         break
-      case 'token':
+      case 'gall':
         setOptions({ ...options, project: undefined })
-        setStep('title')
+        setStep('project')
+        break
+      case 'token':
+        setOptions({ ...options, gall: undefined })
+        setStep(options.project === 'contract' ? 'project' : 'gall')
         break
       case 'template':
         setOptions({ ...options, token: undefined })
@@ -93,7 +103,8 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
       case 'metadata':
         setOptions({ ...options, template: undefined })
         setMetadata(BLANK_METADATA)
-        setStep('template')
+        // TODO: skipping template, we may not want it
+        setStep('token')
         break
     }
   }, [step, setStep, options, setOptions, setRoute])
@@ -114,7 +125,7 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
         <>
           <Row style={{ width: '100%', position: 'relative', justifyContent: 'center' }}>
             {projects.length > 0 && backButton}
-            <h3>New Project Title:</h3>
+            <h3>Create a Project:</h3>
           </Row>
           <Input
             style={{ width: 220 }}
@@ -135,11 +146,29 @@ const NewProjectView = ({ hide = false }: { hide?: boolean }) => {
             <h3>Select Your Project Type:</h3>
           </Row>
           <Row style={{ flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', marginTop: 12 }}>
-            <Button style={buttonStyle} onClick={onSelect('contract')}>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('contract')}>
               Uqbar Contract
             </Button>
-            <Button style={buttonStyle} onClick={onSelect('gall')}>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('contract-gall')}>
               Uqbar Contract + Gall App
+            </Button>
+            <Button style={{ ...buttonStyle, width: '32%', minWidth: 160 }} onClick={onSelect('gall')}>
+              Gall App
+            </Button>
+          </Row>
+        </>
+      )
+    } else if (step === 'gall') {
+      return (
+        <>
+          <Row style={{ width: '100%', position: 'relative', justifyContent: 'center' }}>
+            {backButton}
+            <h3>Select Your Gall Template:</h3>
+            <h4>(Do we even need this step?)</h4>
+          </Row>
+          <Row style={{ flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', marginTop: 12 }}>
+            <Button style={buttonStyle} onClick={onSelect('gall-app-template')}>
+              Blank Template
             </Button>
           </Row>
         </>
